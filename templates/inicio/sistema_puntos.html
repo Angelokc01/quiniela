@@ -1,0 +1,71 @@
+{% extends "inicio/base.html" %}
+{% load static %}
+
+{% block title %}Sistema de puntos – Quiniela Mundial 2026{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1>Sistema de puntos</h1>
+  <p class="muted">
+    Esta quiniela reparte puntos por acertar resultados, posiciones y llaves.
+    La idea es premiar tanto el conocimiento general como los detalles finos.
+  </p>
+
+  <div class="card-mini" style="margin-top: 1rem;">
+    <h2>Descargar PDF</h2>
+    <p>También puedes llevarte este resumen en PDF para compartirlo con el grupo.</p>
+    <a class="btn primary" href="{% static 'inicio/docs/sistema_puntos_quiniela.pdf' %}" download>
+      Descargar PDF
+    </a>
+  </div>
+
+  <section class="card-mini">
+    <h2>1. Fase de grupos</h2>
+    <p><strong>Marcador exacto:</strong> 3 puntos.</p>
+    <p><strong>Resultado correcto:</strong> 1 punto si adivinas quién gana o si termina empatado.</p>
+    <p><strong>Posición exacta en el grupo:</strong> 1 punto por acertar si un equipo queda 1°, 2°, 3° o 4°.</p>
+  </section>
+
+  <section class="card-mini">
+    <h2>2. Eliminatorias: qué equipo avanza</h2>
+    <p>En la llave eliminatoria puedes elegir qué equipo pasa de ronda.</p>
+    <p><strong>Dieciseisavos (R32):</strong> 6 puntos si el equipo queda en el mismo cruce; 3 puntos si pasa a la misma ronda pero en otro cruce.</p>
+    <p><strong>Octavos (R16):</strong> 12 puntos si aciertas el cruce exacto; 6 puntos si el equipo llegó a esa ronda pero en otro lugar.</p>
+    <p><strong>Cuartos (QF):</strong> 12 puntos exactos; 6 puntos en otro cruce de la misma ronda.</p>
+    <p><strong>Semifinales (SF):</strong> 24 puntos exactos; 12 puntos si el equipo sí llegó a semifinales pero en otro cruce.</p>
+    <p><strong>Finalistas:</strong> 30 puntos si aciertas campeón o subcampeón en el lugar correcto; 15 puntos si el equipo llegó a la final pero en el otro lado.</p>
+  </section>
+
+  <section class="card-mini">
+    <h2>3. Resultado exacto de cada partido de eliminación</h2>
+    <p>Además, puedes acertar el marcador exacto del partido de eliminación.</p>
+    <p><strong>R32:</strong> 4 puntos</p>
+    <p><strong>R16:</strong> 5 puntos</p>
+    <p><strong>Cuartos:</strong> 6 puntos</p>
+    <p><strong>Semifinales y tercer puesto:</strong> 7 puntos</p>
+    <p><strong>Final:</strong> 8 puntos</p>
+  </section>
+
+  <section class="card-mini">
+    <h2>4. Posición final del torneo</h2>
+    <p><strong>Campeón:</strong> 50 puntos</p>
+    <p><strong>Subcampeón:</strong> 30 puntos</p>
+    <p><strong>Tercer puesto:</strong> 15 puntos</p>
+    <p><strong>Cuarto puesto:</strong> 8 puntos</p>
+  </section>
+
+  <section class="card-mini">
+    <h2>5. Premios individuales</h2>
+    <p><strong>Bota de Oro:</strong> 10 puntos</p>
+    <p><strong>Balón de Oro:</strong> 10 puntos</p>
+    <p><strong>Guante de Oro:</strong> 10 puntos</p>
+    <p><strong>Mejor Jugador Joven:</strong> 5 puntos</p>
+    <p><strong>Mejor Gol del Mundial:</strong> 5 puntos</p>
+  </section>
+
+  <p class="muted">
+    Los puntos de la llave solo se completan cuando la ronda ya tiene resultados reales o cuando el usuario
+    selecciona explícitamente qué equipo pasa en la predicción.
+  </p>
+</section>
+{% endblock %}

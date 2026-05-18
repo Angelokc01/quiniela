@@ -13,6 +13,7 @@
     <nav>
       <a href="{% url 'inicio:home' %}">Inicio</a>
       <a href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
+      <a href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
       <form method="post" action="{% url 'inicio:sync_now' %}" style="display:inline">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.path }}">

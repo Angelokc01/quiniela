@@ -8,6 +8,9 @@ urlpatterns = [
     # Home: elegir tipo de grupo
     path('', views.home, name='home'),
 
+     # Sistema de puntos
+     path('sistema-de-puntos/', views.sistema_puntos, name='sistema_puntos'),
+
     # Grupos
     path('grupos/crear/', views.create_group, name='create_group'),
     path('grupos/<int:bg_id>/participantes/', views.manage_participants,

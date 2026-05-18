@@ -42,6 +42,13 @@ def home(request):
 
 
 # ============================================================
+# Sistema de puntos
+# ============================================================
+def sistema_puntos(request):
+    return render(request, 'inicio/sistema_puntos.html')
+
+
+# ============================================================
 # Crear grupo
 # ============================================================
 @require_http_methods(['GET', 'POST'])
