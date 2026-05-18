@@ -27,13 +27,14 @@ a:hover { text-decoration: underline; }
 
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem;
   padding: 0.8rem 1.5rem;
   background: var(--surface); border-bottom: 1px solid var(--border);
 }
 .topbar .brand {
   font-weight: 700; font-size: 1.1rem; color: var(--text);
 }
-.topbar nav { display: flex; gap: 1rem; align-items: center; }
+.topbar nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .topbar nav a { color: var(--text); }
 
 .container {
@@ -107,6 +108,12 @@ a:hover { text-decoration: underline; }
   padding: .75rem 0; border-top: 1px solid var(--border);
 }
 
+.responsive-table {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Lists */
 .grouplist { list-style: none; padding: 0; }
 .grouplist li {
@@ -159,6 +166,77 @@ table.matches tr.locked { opacity: 0.55; }
   color: var(--text);
   font-weight: 600;
   margin-top: 0.15rem;
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: .9rem 1rem;
+  }
+
+  .topbar nav {
+    width: 100%;
+    gap: .5rem;
+  }
+
+  .topbar nav a,
+  .topbar nav .link-btn {
+    padding: .35rem 0;
+  }
+
+  .container {
+    padding: 1rem;
+  }
+
+  .card, .card-mini {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .actions .btn,
+  .actions .link-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .grouplist li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .45rem;
+  }
+
+  .inline-form {
+    flex-direction: column;
+  }
+
+  .inline-form input,
+  input[type="text"],
+  input[type="number"],
+  select {
+    width: 100%;
+  }
+
+  input[type="number"] {
+    text-align: left;
+  }
+
+  .score-cell {
+    flex-wrap: wrap;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid-3,
+  .cards {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Leaderboard */

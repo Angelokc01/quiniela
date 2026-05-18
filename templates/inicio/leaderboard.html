@@ -3,36 +3,38 @@
 {% block content %}
 <section class="card">
   <h1>Tabla – {{ bg.name }}</h1>
-  <p class="muted">{{ bg.get_group_type_display }}</p>
+  <p class="muted">Puntajes del grupo</p>
 
-  <table class="matches leaderboard">
-    <thead>
-      <tr>
-        <th>#</th><th>Participante</th>
-        <th>Grupos</th><th>Pos.</th><th>Bracket</th>
-        <th>Final</th><th>Marc. KO</th><th>Premios</th>
-        <th>Total</th><th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in rows %}
+  <div class="responsive-table">
+    <table class="matches leaderboard">
+      <thead>
         <tr>
-          <td><strong>{{ forloop.counter }}</strong></td>
-          <td>{{ r.participant.name }}</td>
-          <td>{{ r.breakdown.group_match_pts }}</td>
-          <td>{{ r.breakdown.standings_pts }}</td>
-          <td>{{ r.breakdown.bracket_pts }}</td>
-          <td>{{ r.breakdown.final_pos_pts }}</td>
-          <td>{{ r.breakdown.knockout_score_pts }}</td>
-          <td>{{ r.breakdown.award_pts }}</td>
-          <td><strong>{{ r.total }}</strong></td>
-          <td><a class="link" href="{% url 'inicio:participant_detail' bg.id r.participant.id %}">detalle</a></td>
+          <th>#</th><th>Participante</th>
+          <th>Grupos</th><th>Pos.</th><th>Bracket</th>
+          <th>Final</th><th>Marc. KO</th><th>Premios</th>
+          <th>Total</th><th></th>
         </tr>
-      {% empty %}
-        <tr><td colspan="10" class="muted">Sin participantes.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td><strong>{{ forloop.counter }}</strong></td>
+            <td>{{ r.participant.name }}</td>
+            <td>{{ r.breakdown.group_match_pts }}</td>
+            <td>{{ r.breakdown.standings_pts }}</td>
+            <td>{{ r.breakdown.bracket_pts }}</td>
+            <td>{{ r.breakdown.final_pos_pts }}</td>
+            <td>{{ r.breakdown.knockout_score_pts }}</td>
+            <td>{{ r.breakdown.award_pts }}</td>
+            <td><strong>{{ r.total }}</strong></td>
+            <td><a class="link" href="{% url 'inicio:participant_detail' bg.id r.participant.id %}">detalle</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="10" class="muted">Sin participantes.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
   <div class="actions">
     <a class="btn ghost" href="{% url 'inicio:manage_participants' bg.id %}">Editar participantes</a>
