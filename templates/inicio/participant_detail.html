@@ -1,0 +1,23 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>{{ participant.name }}</h1>
+  <p class="muted">{{ bg.name }} · {{ bg.get_group_type_display }}</p>
+
+  <div class="kpis">
+    <div class="kpi"><span>Total</span><strong>{{ breakdown.total }}</strong></div>
+    <div class="kpi"><span>Marcadores grupos</span><strong>{{ breakdown.group_match_pts }}</strong></div>
+    <div class="kpi"><span>Posiciones grupos</span><strong>{{ breakdown.standings_pts }}</strong></div>
+    <div class="kpi"><span>Bracket</span><strong>{{ breakdown.bracket_pts }}</strong></div>
+    <div class="kpi"><span>Posición final</span><strong>{{ breakdown.final_pos_pts }}</strong></div>
+    <div class="kpi"><span>Marc. eliminatoria</span><strong>{{ breakdown.knockout_score_pts }}</strong></div>
+    <div class="kpi"><span>Premios</span><strong>{{ breakdown.award_pts }}</strong></div>
+  </div>
+
+  <div class="actions">
+    <a class="btn" href="{% url 'inicio:predictions_dashboard' participant.id %}">Editar predicciones</a>
+    <a class="btn ghost" href="{% url 'inicio:leaderboard' bg.id %}">Volver a tabla</a>
+  </div>
+</section>
+{% endblock %}

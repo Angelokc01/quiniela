@@ -1,0 +1,37 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>Participantes – {{ bg.name }}</h1>
+  <p class="muted">Grupo de {{ bg.get_group_type_display }}</p>
+
+  <form method="post" class="inline-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add">
+    <input type="text" name="name" placeholder="Nombre del participante" required maxlength="120">
+    <button class="btn primary" type="submit">Agregar</button>
+  </form>
+
+  <ul class="grouplist">
+    {% for p in participants %}
+      <li>
+        <span>{{ p.name }}</span>
+        <a class="link" href="{% url 'inicio:predictions_dashboard' p.id %}">Predicciones</a>
+        <form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar a {{ p.name }}?')">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="participant_id" value="{{ p.id }}">
+          <button class="link-btn danger" type="submit">Eliminar</button>
+        </form>
+      </li>
+    {% empty %}
+      <li class="muted">Sin participantes aún. Agrega al menos uno.</li>
+    {% endfor %}
+  </ul>
+
+  <div class="actions">
+    <a class="btn" href="{% url 'inicio:leaderboard' bg.id %}">Ver tabla del grupo</a>
+    <a class="btn ghost" href="{% url 'inicio:home' %}">Volver</a>
+  </div>
+</section>
+{% endblock %}

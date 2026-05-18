@@ -1,0 +1,46 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>{{ participant.name }}</h1>
+  <p class="muted">Grupo: <strong>{{ participant.betting_group.name }}</strong></p>
+
+  <div class="kpis">
+    <div class="kpi"><span>Total puntos</span><strong>{{ breakdown.total }}</strong></div>
+    <div class="kpi"><span>Fase grupos</span><strong>{{ breakdown.group_match_pts }}</strong></div>
+    <div class="kpi"><span>Posiciones</span><strong>{{ breakdown.standings_pts }}</strong></div>
+    <div class="kpi"><span>Bracket</span><strong>{{ breakdown.bracket_pts }}</strong></div>
+    <div class="kpi"><span>Final</span><strong>{{ breakdown.final_pos_pts }}</strong></div>
+    <div class="kpi"><span>Marc. KO</span><strong>{{ breakdown.knockout_score_pts }}</strong></div>
+    <div class="kpi"><span>Premios</span><strong>{{ breakdown.award_pts }}</strong></div>
+  </div>
+
+  <div class="grid-3">
+    <a class="card-mini" href="{% url 'inicio:predict_group_stage' participant.id %}">
+      <h3>Fase de grupos</h3>
+      <p>{{ n_preds_group }} / {{ n_matches_group }} partidos predichos</p>
+      <p class="muted">+ posiciones de los grupos</p>
+    </a>
+
+    <a class="card-mini {% if not group_done %}disabled{% endif %}"
+       href="{% if group_done %}{% url 'inicio:predict_bracket' participant.id %}{% else %}#{% endif %}">
+      <h3>Bracket (R32 → Final)</h3>
+      {% if group_done %}
+        <p>{{ bracket_count }} predicciones de slots guardadas</p>
+      {% else %}
+        <p class="muted">Termina la fase de grupos primero</p>
+      {% endif %}
+    </a>
+
+    <a class="card-mini" href="{% url 'inicio:predict_awards' participant.id %}">
+      <h3>Premios</h3>
+      <p>{{ awards_count }} / 5 premios predichos</p>
+    </a>
+  </div>
+
+  <div class="actions">
+    <a class="btn" href="{% url 'inicio:leaderboard' participant.betting_group.id %}">Tabla del grupo</a>
+    <a class="btn ghost" href="{% url 'inicio:choose_participant' %}">Cambiar participante</a>
+  </div>
+</section>
+{% endblock %}

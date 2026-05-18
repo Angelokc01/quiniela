@@ -1,0 +1,37 @@
+{% extends "inicio/base.html" %}
+
+{% block title %}Inicio – Quiniela Mundial 2026{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Quiniela Mundial 2026</h1>
+  <p>Predice los partidos y compite con tus amigos o familia.</p>
+</section>
+
+<section class="cards">
+  <div class="card">
+    <h2>Grupos de apuestas</h2>
+    <p>Crea un nuevo grupo o únete a uno existente.</p>
+    <a class="btn primary" href="{% url 'inicio:create_group' %}">+ Crear grupo</a>
+
+    <h3>Grupos existentes</h3>
+    {% if groups %}
+    <ul class="grouplist">
+      {% for g in groups %}
+        <li>
+          <span>{{ g.name }} ({{ g.participants.count }} participantes)</span>
+          <a class="link" href="{% url 'inicio:manage_participants' g.id %}">Participantes</a>
+          <a class="link" href="{% url 'inicio:leaderboard' g.id %}">Tabla</a>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No hay grupos aún. ¡Crea uno!</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="callout">
+  <p>¿Ya tienes un grupo? <a href="{% url 'inicio:choose_participant' %}">Empieza a predecir</a>.</p>
+</section>
+{% endblock %}

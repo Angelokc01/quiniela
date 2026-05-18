@@ -1,0 +1,13 @@
+from django import template
+
+register = template.Library()
+
+
+@register.filter
+def get_item(d, key):
+    if d is None:
+        return None
+    try:
+        return d.get(key)
+    except AttributeError:
+        return None

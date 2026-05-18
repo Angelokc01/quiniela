@@ -1,0 +1,83 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>Fase de grupos – {{ participant.name }}</h1>
+  <p class="muted">
+    Pon tu marcador para cada partido. Los partidos que ya empezaron están bloqueados.
+    Cuando termines, elige también la <strong>posición final de cada equipo</strong> dentro de su grupo.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% for g, items in grouped.items %}
+      <fieldset class="group-block">
+        <legend>Grupo {{ g }}</legend>
+
+        <h4>Partidos</h4>
+        <table class="matches">
+          <thead><tr><th>#</th><th>Partido</th><th>Marcador</th><th></th></tr></thead>
+          <tbody>
+            {% for item in items %}
+              <tr {% if item.locked %}class="locked"{% endif %}>
+                <td>{{ item.match.match_number }}</td>
+                <td>{{ item.match.home_team }} vs {{ item.match.away_team }}</td>
+                <td class="score-cell">
+                  <input type="number" name="home_{{ item.match.id }}" min="0" max="20"
+                         value="{% if item.pred %}{{ item.pred.home_score }}{% endif %}"
+                         {% if item.locked %}disabled{% endif %}>
+                  <span>–</span>
+                  <input type="number" name="away_{{ item.match.id }}" min="0" max="20"
+                         value="{% if item.pred %}{{ item.pred.away_score }}{% endif %}"
+                         {% if item.locked %}disabled{% endif %}>
+                </td>
+                <td class="muted small">
+                  {% if item.locked %}🔒 ya empezó{% else %}{{ item.match.kickoff_utc|date:"D d M H:i" }}{% endif %}
+                  {% if item.match.is_finished %}
+                    · <strong>final: {{ item.match.home_score }}-{{ item.match.away_score }}</strong>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <h4>Posición final que predigo para el grupo {{ g }}</h4>
+        <table class="matches">
+          <thead>
+            <tr><th>Equipo</th><th>Pts</th><th>GD</th><th>GF</th><th>Posición</th></tr>
+          </thead>
+          <tbody>
+            {% for grp_name, grp_rows in standings_table.items %}
+              {% if grp_name == g %}
+                {% for trow in grp_rows %}
+                  <tr>
+                    <td>{{ trow.team }}</td>
+                    <td>{{ trow.stats.Pts }}</td>
+                    <td>{{ trow.stats.GD }}</td>
+                    <td>{{ trow.stats.GF }}</td>
+                    <td>
+                      <select name="pos_|{{ g }}|{{ trow.team }}">
+                        <option value="1" {% if trow.user_pos == 1 %}selected{% endif %}>1</option>
+                        <option value="2" {% if trow.user_pos == 2 %}selected{% endif %}>2</option>
+                        <option value="3" {% if trow.user_pos == 3 %}selected{% endif %}>3</option>
+                        <option value="4" {% if trow.user_pos == 4 %}selected{% endif %}>4</option>
+                      </select>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </fieldset>
+    {% endfor %}
+
+    <div class="actions sticky-bottom">
+      <button class="btn primary" type="submit">Guardar todo</button>
+      <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

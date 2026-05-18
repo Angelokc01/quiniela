@@ -1,0 +1,105 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>Bracket eliminatorio – {{ participant.name }}</h1>
+  <p class="muted">
+    En <strong>R32</strong> los equipos ya vienen sugeridos según tus predicciones
+    de fase de grupos: sólo pones el marcador (si aciertas el marcador exacto en el
+    mismo orden top–abajo, ganas puntos aunque no coincidan los equipos).<br>
+    En <strong>todos los cruces eliminatorios</strong> puedes elegir además qué equipo
+    pasa de ronda para que el bracket se auto-actualice aunque el marcador termine en empate.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% for label, key, pairs, is_r32 in rounds_data %}
+      <fieldset class="group-block">
+        <legend>{{ label }}</legend>
+        <table class="matches">
+          <thead><tr>
+            <th>Equipo (top)</th><th>Marc.</th><th>Pasa</th><th>Predicción final</th><th>Slot</th>
+          </tr></thead>
+          <tbody>
+            {% for p in pairs %}
+              <tr>
+                <td>
+                  {% if is_r32 %}
+                    <strong>{{ p.team_top|default:"?" }}</strong>
+                    <input type="hidden" name="slot__{{ p.slot_top }}" value="{{ p.team_top }}">
+                  {% else %}
+                    <input type="text" name="slot__{{ p.slot_top }}"
+                           value="{{ p.team_top }}" placeholder="(escribe equipo)">
+                  {% endif %}
+                </td>
+                <td class="score-cell">
+                  <input type="number" name="kscore_h__{{ p.slot_top }}__{{ p.slot_bottom }}"
+                         min="0" max="20" value="{{ p.home_score }}">
+                  <span>–</span>
+                  <input type="number" name="kscore_a__{{ p.slot_top }}__{{ p.slot_bottom }}"
+                         min="0" max="20" value="{{ p.away_score }}">
+                </td>
+                <td>
+                  <select name="winner__{{ p.slot_top }}__{{ p.slot_bottom }}">
+                    <option value="">-- elegir --</option>
+                    {% if p.team_top %}
+                      <option value="{{ p.team_top }}" {% if p.winner == p.team_top %}selected{% endif %}>
+                        {{ p.team_top }}
+                      </option>
+                    {% endif %}
+                    {% if p.team_bottom %}
+                      <option value="{{ p.team_bottom }}" {% if p.winner == p.team_bottom %}selected{% endif %}>
+                        {{ p.team_bottom }}
+                      </option>
+                    {% endif %}
+                  </select>
+                </td>
+                <td>
+                  <div class="muted small">Predicción final</div>
+                  <div class="prediction-final-text">
+                    {{ p.winner|default:"Pendiente" }}
+                  </div>
+                  {% if is_r32 %}
+                    <input type="hidden" name="slot__{{ p.slot_bottom }}" value="{{ p.team_bottom }}">
+                  {% endif %}
+                </td>
+                <td class="muted small">{{ p.slot_top }} vs {{ p.slot_bottom }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="actions">
+          <button class="btn primary" type="submit" name="save_phase" value="{{ key }}">Guardar {{ label }}</button>
+        </div>
+      </fieldset>
+    {% endfor %}
+
+    <fieldset class="group-block">
+      <legend>🏆 Predicción final</legend>
+      <table class="matches">
+        {% for fp in final_positions %}
+          <tr>
+            <th>{{ fp.label }}</th>
+            <td>
+              {% if fp.editable %}
+                <input type="text" name="slot__{{ fp.slot }}" value="{{ fp.team }}"
+                       placeholder="Equipo">
+              {% else %}
+                <strong>{{ fp.team|default:"Pendiente" }}</strong>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+      <div class="actions">
+        <button class="btn primary" type="submit" name="save_phase" value="final">Guardar predicción final</button>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

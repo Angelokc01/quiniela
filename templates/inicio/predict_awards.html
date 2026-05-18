@@ -1,0 +1,32 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>Premios individuales – {{ participant.name }}</h1>
+  <p class="muted">
+    Escribe el <strong>nombre completo</strong> del jugador que crees ganará cada
+    premio. Los puntos se otorgan si el nombre coincide exactamente con el que
+    se registre en el admin al finalizar el mundial.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    <table class="matches">
+      <thead><tr><th>Premio</th><th>Jugador</th><th>Pts</th></tr></thead>
+      <tbody>
+        {% for a in awards %}
+          <tr>
+            <td>{{ a.label }}</td>
+            <td><input type="text" name="{{ a.key }}" value="{{ a.value }}" maxlength="120" placeholder="Nombre del jugador"></td>
+            <td class="muted">{{ a.points }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="actions">
+      <button class="btn primary" type="submit">Guardar</button>
+      <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

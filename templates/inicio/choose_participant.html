@@ -1,0 +1,24 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>Elige tu participante</h1>
+  <p class="muted">Selecciona desde qué participante quieres predecir o ver puntos.</p>
+
+  {% for g in groups %}
+    <h2>{{ g.name }} <small class="muted">({{ g.get_group_type_display }})</small></h2>
+    <ul class="grouplist">
+      {% for p in g.participants.all %}
+        <li>
+          <span>{{ p.name }}</span>
+          <a class="link" href="{% url 'inicio:predictions_dashboard' p.id %}">Predicciones</a>
+        </li>
+      {% empty %}
+        <li class="muted">Sin participantes en este grupo.</li>
+      {% endfor %}
+    </ul>
+  {% empty %}
+    <p class="muted">No hay grupos creados todavía. <a href="{% url 'inicio:home' %}">Volver al inicio</a>.</p>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+<section class="card">
+  <h1>Crear grupo</h1>
+  <form method="post">
+    {% csrf_token %}
+    <label>Nombre del grupo
+      <input type="text" name="name" required maxlength="120" autofocus>
+    </label>
+    <div class="actions">
+      <button class="btn primary" type="submit">Crear</button>
+      <a class="btn ghost" href="{% url 'inicio:home' %}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
