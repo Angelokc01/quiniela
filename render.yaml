@@ -29,7 +29,7 @@ services:
   - type: cron
     name: quiniela-sync-matches
     env: python
-    plan: free
+    plan: starter
     schedule: "*/30 * * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python manage.py sync_matches
