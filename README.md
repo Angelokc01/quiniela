@@ -15,6 +15,9 @@ python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
+# Crea tu archivo de entorno local a partir de .env.example
+# y completa las variables privadas antes de ejecutar en producción.
+
 python manage.py migrate
 python manage.py createsuperuser   # para entrar al admin
 
@@ -37,6 +40,30 @@ Esto:
 3. Recalcula puntos (en realidad los puntos se calculan on-demand, así que basta con sincronizar).
 
 Si quieres automatizar, usa cron o GitHub Actions cada ~30 minutos durante el mundial.
+
+## Despliegue en Render
+
+El repositorio incluye [render.yaml](render.yaml) para desplegar la web, la base de datos y el cron de sincronización.
+
+Pasos rápidos:
+
+1. En Render, crea un nuevo Blueprint desde este repositorio.
+2. Render leerá el archivo [render.yaml](render.yaml) y creará el servicio web, el cron y la base de datos.
+3. Define o revisa estas variables de entorno:
+	- `SECRET_KEY`
+	- `DEBUG=False`
+	- `ALLOWED_HOSTS=tu-servicio.onrender.com`
+	- `CSRF_TRUSTED_ORIGINS=https://tu-servicio.onrender.com`
+	- `WC2026_API_URL=https://api.wc2026api.com`
+	- `WC2026_API_TOKEN=...`
+4. El servicio web usa `gunicorn quiniela.wsgi:application` como comando de arranque.
+5. El cron ejecuta `python manage.py sync_matches` cada 30 minutos.
+
+Notas:
+
+- En producción, Render usa PostgreSQL mediante `DATABASE_URL`.
+- Los archivos estáticos se recogen con `python manage.py collectstatic --noinput` durante el build.
+- No dejes el token de la API hardcodeado en el código; usa variables de entorno.
 
 ## Lo que falta y vale la pena considerar
 
