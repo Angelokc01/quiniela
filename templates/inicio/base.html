@@ -10,16 +10,18 @@
 <body>
   <header class="topbar">
     <a href="{% url 'inicio:home' %}" class="brand">⚽ Quiniela 2026</a>
-    <nav>
-      <a href="{% url 'inicio:home' %}">Inicio</a>
-      <a href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
-      <a href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
-      <form method="post" action="{% url 'inicio:sync_now' %}" style="display:inline">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.path }}">
-        <button class="link-btn" type="submit">Sincronizar API</button>
-      </form>
-    </nav>
+    <div class="topbar-nav-box">
+      <nav>
+        <a href="{% url 'inicio:home' %}">Inicio</a>
+        <a href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
+        <a href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
+        <form method="post" action="{% url 'inicio:sync_now' %}" style="display:inline">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button class="link-btn" type="submit">Sincronizar API</button>
+        </form>
+      </nav>
+    </div>
   </header>
 
   {% if messages %}

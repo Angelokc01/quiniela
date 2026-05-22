@@ -168,6 +168,9 @@ def predict_group_stage(request, participant_id):
     ensure_group_matches_synced(request)
 
     if request.method == 'POST':
+        pending_group_preds = []
+        pending_standing_preds = []
+
         # Guardar todos los marcadores enviados
         for key, value in request.POST.items():
             if not key.startswith('home_') and not key.startswith('away_'):
@@ -192,12 +195,10 @@ def predict_group_stage(request, participant_id):
             # No permitir editar si el partido ya empezó
             if match.kickoff_in_past:
                 continue
-            GroupMatchPrediction.objects.update_or_create(
-                participant=participant, match=match,
-                defaults={'home_score': hs, 'away_score': as_},
-            )
+            pending_group_preds.append((match, hs, as_))
 
         # También guardar predicciones de POSICIÓN del grupo si las enviaron
+        positions_by_group = defaultdict(list)
         for key, value in request.POST.items():
             if not key.startswith('pos_|'):
                 continue
@@ -211,14 +212,41 @@ def predict_group_stage(request, participant_id):
                 pos = int(value)
             except ValueError:
                 continue
-            GroupStandingPrediction.objects.update_or_create(
-                participant=participant,
-                group_name=group_name,
-                team=team,
-                defaults={'position': pos},
+            positions_by_group[group_name].append((team, pos))
+            pending_standing_preds.append((group_name, team, pos))
+
+        invalid_groups = []
+        for group_name, items in positions_by_group.items():
+            positions = [pos for _team, pos in items]
+            expected = {1, 2, 3, 4}
+            if len(items) != 4 or set(positions) != expected:
+                invalid_groups.append(group_name)
+                continue
+            if len(set(positions)) != 4:
+                invalid_groups.append(group_name)
+
+        if invalid_groups:
+            messages.error(
+                request,
+                'Cada grupo debe tener 4 equipos con posiciones únicas del 1 al 4. '
+                f'Revisa: {", ".join(sorted(set(invalid_groups)))}.'
             )
-        messages.success(request, 'Predicciones guardadas.')
-        return redirect('inicio:predict_group_stage', participant_id=participant.id)
+        else:
+            for match, hs, as_ in pending_group_preds:
+                GroupMatchPrediction.objects.update_or_create(
+                    participant=participant, match=match,
+                    defaults={'home_score': hs, 'away_score': as_},
+                )
+
+            for group_name, team, pos in pending_standing_preds:
+                GroupStandingPrediction.objects.update_or_create(
+                    participant=participant,
+                    group_name=group_name,
+                    team=team,
+                    defaults={'position': pos},
+                )
+            messages.success(request, 'Predicciones guardadas.')
+            return redirect('inicio:predict_group_stage', participant_id=participant.id)
 
     # GET: armar contexto
     matches = list(Match.objects.filter(round=ROUND_GROUP).order_by(

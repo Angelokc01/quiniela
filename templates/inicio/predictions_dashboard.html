@@ -24,7 +24,7 @@
 
     <a class="card-mini {% if not group_done %}disabled{% endif %}"
        href="{% if group_done %}{% url 'inicio:predict_bracket' participant.id %}{% else %}#{% endif %}">
-      <h3>Bracket (R32 → Final)</h3>
+      <h3>Bracket (16avos → Final)</h3>
       {% if group_done %}
         <p>{{ bracket_count }} predicciones de slots guardadas</p>
       {% else %}

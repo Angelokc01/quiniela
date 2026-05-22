@@ -34,6 +34,13 @@ a:hover { text-decoration: underline; }
 .topbar .brand {
   font-weight: 700; font-size: 1.1rem; color: var(--text);
 }
+.topbar-nav-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.45rem 0.7rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+}
 .topbar nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .topbar nav a { color: var(--text); }
 
