@@ -31,6 +31,29 @@ from .scoring import (
 from .wc_api import sync_matches_to_db
 
 
+def ensure_group_matches_synced(request=None):
+    """
+    Carga partidos desde la API solo si todavía no existe la fase de grupos.
+    Se usa para evitar que el usuario tenga que pulsar el botón de sincronizar.
+    """
+    if Match.objects.filter(round=ROUND_GROUP).exists():
+        return False
+
+    try:
+        created, updated = sync_matches_to_db()
+    except Exception as exc:
+        if request is not None:
+            messages.error(request, f'No se pudieron sincronizar los partidos: {exc}')
+        return False
+
+    if request is not None:
+        messages.success(
+            request,
+            f'Partidos sincronizados automáticamente: {created} creados, {updated} actualizados.'
+        )
+    return True
+
+
 # ============================================================
 # Home: ver grupos existentes
 # ============================================================
@@ -97,6 +120,7 @@ def manage_participants(request, bg_id):
 # Elegir participante para empezar a predecir / ver puntajes
 # ============================================================
 def choose_participant(request):
+    ensure_group_matches_synced(request)
     groups = BettingGroup.objects.prefetch_related('participants').all()
     return render(request, 'inicio/choose_participant.html', {
         'groups': groups,
@@ -108,6 +132,7 @@ def choose_participant(request):
 # ============================================================
 def predictions_dashboard(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
+    ensure_group_matches_synced(request)
 
     n_matches_group = Match.objects.filter(round=ROUND_GROUP).count()
     n_preds_group = GroupMatchPrediction.objects.filter(participant=participant).count()
@@ -140,6 +165,7 @@ def predictions_dashboard(request, participant_id):
 # ============================================================
 def predict_group_stage(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
+    ensure_group_matches_synced(request)
 
     if request.method == 'POST':
         # Guardar todos los marcadores enviados

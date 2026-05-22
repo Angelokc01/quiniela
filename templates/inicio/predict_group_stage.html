@@ -8,12 +8,13 @@
     Cuando termines, elige también la <strong>posición final de cada equipo</strong> dentro de su grupo.
   </p>
 
+  {% if grouped %}
   <form method="post">
     {% csrf_token %}
 
-    {% for g, items in grouped.items %}
-      <fieldset class="group-block">
-        <legend>Grupo {{ g }}</legend>
+      {% for g, items in grouped.items %}
+        <fieldset class="group-block">
+          <legend>Grupo {{ g }}</legend>
 
         <h4>Partidos</h4>
         <div class="responsive-table">
@@ -75,13 +76,29 @@
             </tbody>
           </table>
         </div>
-      </fieldset>
-    {% endfor %}
+        </fieldset>
+      {% endfor %}
 
-    <div class="actions sticky-bottom">
-      <button class="btn primary" type="submit">Guardar todo</button>
-      <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
-    </div>
+      <div class="actions sticky-bottom">
+        <button class="btn primary" type="submit">Guardar todo</button>
+        <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
+      </div>
   </form>
+  {% else %}
+      <div class="card-mini card-accent">
+        <h2>No hay partidos cargados todavía</h2>
+        <p class="muted">
+          Para ver y completar esta pantalla, primero sincroniza los partidos desde la API.
+        </p>
+        <div class="actions">
+          <form method="post" action="{% url 'inicio:sync_now' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button class="btn primary" type="submit">Sincronizar API</button>
+          </form>
+          <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
+        </div>
+      </div>
+  {% endif %}
 </section>
 {% endblock %}
