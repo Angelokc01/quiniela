@@ -15,6 +15,16 @@
         <a href="{% url 'inicio:home' %}">Inicio</a>
         <a href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
         <a href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
+        {% if request.session.is_app_admin %}
+          <span class="admin-pill">Admin</span>
+          <form method="post" action="{% url 'inicio:admin_logout' %}" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button class="link-btn" type="submit">Salir admin</button>
+          </form>
+        {% else %}
+          <a href="{% url 'inicio:admin_login' %}?next={{ request.path|urlencode }}">Entrar admin</a>
+        {% endif %}
         <form method="post" action="{% url 'inicio:sync_now' %}" style="display:inline">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.path }}">

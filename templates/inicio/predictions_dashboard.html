@@ -4,6 +4,9 @@
 <section class="card">
   <h1>{{ participant.name }}</h1>
   <p class="muted">Grupo: <strong>{{ participant.betting_group.name }}</strong></p>
+  {% if participant.predictions_locked %}
+    <div class="msg msg-error">Predicciones bloqueadas por administrador. Este participante solo puede consultar.</div>
+  {% endif %}
 
   <div class="kpis">
     <div class="kpi"><span>Total puntos</span><strong>{{ breakdown.total }}</strong></div>

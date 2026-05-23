@@ -109,6 +109,18 @@ a:hover { text-decoration: underline; }
 }
 .link-btn.danger { color: var(--danger); }
 
+.admin-pill {
+  display: inline-block;
+  margin-left: .45rem;
+  padding: .1rem .45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-size: .75rem;
+  font-weight: 600;
+}
+
 .actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
 .sticky-bottom {
   position: sticky; bottom: 0; background: var(--surface);

@@ -3,6 +3,7 @@ Vistas de la quiniela. Sin autenticación. Las "sesiones" son simplemente
 escoger en pantalla qué grupo y qué participante quieres usar.
 """
 from collections import defaultdict
+import os
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -29,6 +30,20 @@ from .scoring import (
     build_actual_bracket,
 )
 from .wc_api import sync_matches_to_db
+
+
+ADMIN_SESSION_KEY = 'is_app_admin'
+
+
+def is_app_admin(request):
+    return bool(request.session.get(ADMIN_SESSION_KEY, False))
+
+
+def _ensure_admin_or_redirect(request, fallback='inicio:home'):
+    if is_app_admin(request):
+        return None
+    messages.error(request, 'Acción solo permitida para administrador.')
+    return redirect(fallback)
 
 
 def ensure_group_matches_synced(request=None):
@@ -61,7 +76,36 @@ def home(request):
     groups = BettingGroup.objects.all()
     return render(request, 'inicio/home.html', {
         'groups': groups,
+        'is_app_admin': is_app_admin(request),
     })
+
+
+@require_http_methods(['GET', 'POST'])
+def admin_login(request):
+    if request.method == 'POST':
+        username = (request.POST.get('username') or '').strip()
+        password = request.POST.get('password') or ''
+
+        allowed_username = os.getenv('ADMIN_PANEL_USERNAME', 'Alysaliu')
+        allowed_password = os.getenv('ADMIN_PANEL_PASSWORD', 'Penyapenya5422')
+
+        if username == allowed_username and password == allowed_password:
+            request.session[ADMIN_SESSION_KEY] = True
+            messages.success(request, 'Sesión de administrador iniciada.')
+            return redirect(request.POST.get('next') or 'inicio:home')
+
+        messages.error(request, 'Credenciales de administrador inválidas.')
+
+    return render(request, 'inicio/admin_login.html', {
+        'next': request.GET.get('next') or request.POST.get('next') or reverse('inicio:home'),
+    })
+
+
+@require_POST
+def admin_logout(request):
+    request.session.pop(ADMIN_SESSION_KEY, None)
+    messages.info(request, 'Sesión de administrador cerrada.')
+    return redirect(request.POST.get('next') or 'inicio:home')
 
 
 # ============================================================
@@ -96,6 +140,7 @@ def create_group(request):
 @require_http_methods(['GET', 'POST'])
 def manage_participants(request, bg_id):
     bg = get_object_or_404(BettingGroup, id=bg_id)
+    admin_mode = is_app_admin(request)
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -105,15 +150,44 @@ def manage_participants(request, bg_id):
                 Participant.objects.get_or_create(betting_group=bg, name=name)
             return redirect('inicio:manage_participants', bg_id=bg.id)
         if action == 'delete':
+            if not admin_mode:
+                messages.error(request, 'Solo el administrador puede eliminar participantes.')
+                return redirect('inicio:manage_participants', bg_id=bg.id)
             pid = request.POST.get('participant_id')
             if pid:
                 Participant.objects.filter(id=pid, betting_group=bg).delete()
+            return redirect('inicio:manage_participants', bg_id=bg.id)
+        if action == 'toggle_lock':
+            if not admin_mode:
+                messages.error(request, 'Solo el administrador puede bloquear predicciones.')
+                return redirect('inicio:manage_participants', bg_id=bg.id)
+            pid = request.POST.get('participant_id')
+            participant = Participant.objects.filter(id=pid, betting_group=bg).first()
+            if participant:
+                participant.predictions_locked = not participant.predictions_locked
+                participant.save(update_fields=['predictions_locked'])
+                state = 'bloqueadas' if participant.predictions_locked else 'desbloqueadas'
+                messages.success(request, f'Predicciones de {participant.name} {state}.')
             return redirect('inicio:manage_participants', bg_id=bg.id)
 
     return render(request, 'inicio/manage_participants.html', {
         'bg': bg,
         'participants': bg.participants.all(),
+        'is_app_admin': admin_mode,
     })
+
+
+@require_POST
+def delete_group(request, bg_id):
+    denied = _ensure_admin_or_redirect(request)
+    if denied is not None:
+        return denied
+
+    bg = get_object_or_404(BettingGroup, id=bg_id)
+    group_name = bg.name
+    bg.delete()
+    messages.success(request, f'Grupo "{group_name}" eliminado junto con sus participantes.')
+    return redirect('inicio:home')
 
 
 # ============================================================
@@ -157,6 +231,7 @@ def predictions_dashboard(request, participant_id):
         'bracket_count': bracket_count,
         'awards_count': awards_count,
         'breakdown': breakdown,
+        'is_app_admin': is_app_admin(request),
     })
 
 
@@ -166,6 +241,10 @@ def predictions_dashboard(request, participant_id):
 def predict_group_stage(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
     ensure_group_matches_synced(request)
+
+    if request.method == 'POST' and participant.predictions_locked and not is_app_admin(request):
+        messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
+        return redirect('inicio:predict_group_stage', participant_id=participant.id)
 
     if request.method == 'POST':
         pending_group_preds = []
@@ -296,6 +375,10 @@ def predict_group_stage(request, participant_id):
 # ============================================================
 def predict_bracket(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
+
+    if request.method == 'POST' and participant.predictions_locked and not is_app_admin(request):
+        messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
+        return redirect('inicio:predict_bracket', participant_id=participant.id)
 
     # Para poder predecir bracket, necesitamos saber qué equipos clasifican.
     # Usamos las predicciones del participante para derivar quién va a R32 (=top 2
@@ -524,6 +607,9 @@ def predict_awards(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
 
     if request.method == 'POST':
+        if participant.predictions_locked and not is_app_admin(request):
+            messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
+            return redirect('inicio:predict_awards', participant_id=participant.id)
         for award_key, _label in AWARD_CHOICES:
             value = (request.POST.get(award_key) or '').strip()
             if value:

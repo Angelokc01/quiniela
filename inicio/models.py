@@ -74,6 +74,7 @@ class Participant(models.Model):
         BettingGroup, on_delete=models.CASCADE, related_name='participants'
     )
     name = models.CharField(max_length=120)
+    predictions_locked = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

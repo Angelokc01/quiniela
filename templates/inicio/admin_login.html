@@ -1,0 +1,30 @@
+{% extends "inicio/base.html" %}
+
+{% block title %}Ingreso administrador{% endblock %}
+
+{% block content %}
+<section class="card" style="max-width: 520px; margin: 1.5rem auto;">
+  <h1>Ingreso de administrador</h1>
+  <p class="muted">Solo el administrador puede eliminar grupos, eliminar participantes y bloquear predicciones.</p>
+
+  <form method="post" class="inline-form" style="flex-direction: column; align-items: stretch;">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <label>
+      Usuario
+      <input type="text" name="username" required autocomplete="username">
+    </label>
+
+    <label>
+      Contraseña
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Entrar como admin</button>
+      <a class="btn ghost" href="{% url 'inicio:home' %}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

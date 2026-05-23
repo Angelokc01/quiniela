@@ -15,14 +15,29 @@
   <ul class="grouplist">
     {% for p in participants %}
       <li>
-        <span>{{ p.name }}</span>
+        <span>
+          {{ p.name }}
+          {% if p.predictions_locked %}
+            <span class="admin-pill">Bloqueado</span>
+          {% endif %}
+        </span>
         <a class="link" href="{% url 'inicio:predictions_dashboard' p.id %}">Predicciones</a>
-        <form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar a {{ p.name }}?')">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="delete">
-          <input type="hidden" name="participant_id" value="{{ p.id }}">
-          <button class="link-btn danger" type="submit">Eliminar</button>
-        </form>
+        {% if is_app_admin %}
+          <form method="post" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle_lock">
+            <input type="hidden" name="participant_id" value="{{ p.id }}">
+            <button class="link-btn" type="submit">
+              {% if p.predictions_locked %}Desbloquear{% else %}Bloquear{% endif %}
+            </button>
+          </form>
+          <form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar a {{ p.name }}?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="participant_id" value="{{ p.id }}">
+            <button class="link-btn danger" type="submit">Eliminar</button>
+          </form>
+        {% endif %}
       </li>
     {% empty %}
       <li class="muted">Sin participantes aún. Agrega al menos uno.</li>

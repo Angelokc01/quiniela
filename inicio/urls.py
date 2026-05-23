@@ -5,6 +5,10 @@ from . import views
 app_name = 'inicio'
 
 urlpatterns = [
+     # Admin de la app (sesión simple)
+     path('admin-login/', views.admin_login, name='admin_login'),
+     path('admin-logout/', views.admin_logout, name='admin_logout'),
+
     # Home: elegir tipo de grupo
     path('', views.home, name='home'),
 
@@ -13,6 +17,7 @@ urlpatterns = [
 
     # Grupos
     path('grupos/crear/', views.create_group, name='create_group'),
+     path('grupos/<int:bg_id>/eliminar/', views.delete_group, name='delete_group'),
     path('grupos/<int:bg_id>/participantes/', views.manage_participants,
          name='manage_participants'),
 
