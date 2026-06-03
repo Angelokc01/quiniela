@@ -1,12 +1,15 @@
 from io import BytesIO
+from pathlib import Path
 from xml.sax.saxutils import escape
 
+from django.conf import settings
 from django.utils import timezone
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from pypdf import PdfReader, PdfWriter
 
 from .bracket import round_matches
 from .models import (
@@ -69,7 +72,15 @@ def _next_slot_for_round(round_name, slot_top):
     return None
 
 
-def build_participant_predictions_pdf(participant, blank=False):
+def _template_pdf_path() -> Path:
+    return Path(settings.BASE_DIR) / 'static' / 'inicio' / 'docs' / 'Mundial2026_Predicciones.pdf'
+
+
+def _template_pdf_bytes() -> bytes:
+    return _template_pdf_path().read_bytes()
+
+
+def _build_complete_predictions_pdf(participant):
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -151,11 +162,10 @@ def build_participant_predictions_pdf(participant, blank=False):
     }
 
     story = []
-    mode_label = 'Vacío para imprimir' if blank else 'Con mis predicciones'
     story.append(Paragraph('Quiniela Mundial 2026', title_style))
     story.append(Spacer(1, 4))
     story.append(Paragraph(f'{participant.name} - {participant.betting_group.name}', subtitle_style))
-    story.append(Paragraph(f'Modo: {mode_label}', subtitle_style))
+    story.append(Paragraph('Resumen con mis predicciones', subtitle_style))
     story.append(Paragraph(f'Generado: {timezone.localtime().strftime("%d/%m/%Y %H:%M")}', subtitle_style))
     story.append(Spacer(1, 10))
 
@@ -168,11 +178,8 @@ def build_participant_predictions_pdf(participant, blank=False):
             _p('Marcador', cell_style),
         ]]
         for match in group_matches[group_name]:
-            score = ''
-            if not blank:
-                pred = saved_group_scores.get(match.id)
-                if pred is not None:
-                    score = f'{pred.home_score}-{pred.away_score}'
+            pred = saved_group_scores.get(match.id)
+            score = f'{pred.home_score}-{pred.away_score}' if pred is not None else ''
             kickoff = ''
             if match.kickoff_utc:
                 kickoff = timezone.localtime(match.kickoff_utc).strftime('%d/%m %H:%M')
@@ -193,81 +200,13 @@ def build_participant_predictions_pdf(participant, blank=False):
             _p('Posición', cell_style),
         ]]
         for team in group_teams.get(group_name, []):
-            position = '' if blank else saved_positions.get((group_name, team), '')
+            position = saved_positions.get((group_name, team), '')
             standings_rows.append([
                 _p(team, cell_style),
                 _p(position, cell_style),
             ])
         story.append(_table(standings_rows, [360, 120]))
         story.append(Spacer(1, 10))
-
-    story.append(PageBreak())
-    story.append(Paragraph('Bracket eliminatorio', section_style))
-
-    for round_name, round_label in [
-        (ROUND_R32, 'R32 - Dieciseisavos'),
-        (ROUND_R16, 'R16 - Octavos'),
-        (ROUND_QF, 'Cuartos'),
-        (ROUND_SF, 'Semifinales'),
-        (ROUND_3RD, 'Tercer puesto'),
-        (ROUND_FINAL, 'Final'),
-    ]:
-        story.append(Paragraph(round_label, sub_style))
-        bracket_rows = [[
-            _p('Slot A', cell_style),
-            _p('Equipo A', cell_style),
-            _p('Marcador', cell_style),
-            _p('Equipo B', cell_style),
-            _p('Slot B', cell_style),
-            _p('Gana', cell_style),
-        ]]
-
-        for slot_top, slot_bottom in round_matches(round_name):
-            team_top = ''
-            team_bottom = ''
-            winner = ''
-            score = ''
-            if not blank:
-                team_top = saved_bracket.get(slot_top, '')
-                team_bottom = saved_bracket.get(slot_bottom, '')
-                score_pred = saved_knockout_scores.get((slot_top, slot_bottom))
-                if score_pred is not None:
-                    score = f'{score_pred.home_score}-{score_pred.away_score}'
-                if round_name == ROUND_3RD:
-                    winner = saved_bracket.get(SLOT_THIRD, '')
-                elif round_name == ROUND_FINAL:
-                    winner = saved_bracket.get(SLOT_CHAMPION, '')
-                else:
-                    winner = saved_bracket.get(_next_slot_for_round(round_name, slot_top), '')
-
-            bracket_rows.append([
-                _p(slot_top, cell_style),
-                _p(team_top, cell_style),
-                _p(score, cell_style),
-                _p(team_bottom, cell_style),
-                _p(slot_bottom, cell_style),
-                _p(winner, cell_style),
-            ])
-
-        story.append(_table(bracket_rows, [60, 170, 90, 170, 60, 90]))
-        story.append(Spacer(1, 10))
-
-    story.append(Paragraph('Posiciones finales', section_style))
-    final_rows = [[
-        _p('Puesto', cell_style),
-        _p('Equipo', cell_style),
-    ]]
-    for slot, label in [
-        (SLOT_CHAMPION, 'Campeón'),
-        (SLOT_RUNNER_UP, 'Subcampeón'),
-        (SLOT_THIRD, '3er puesto'),
-        (SLOT_FOURTH, '4to puesto'),
-    ]:
-        final_rows.append([
-            _p(label, cell_style),
-            _p('' if blank else saved_bracket.get(slot, ''), cell_style),
-        ])
-    story.append(_table(final_rows, [160, 520]))
 
     story.append(PageBreak())
     story.append(Paragraph('Premios individuales', section_style))
@@ -278,9 +217,18 @@ def build_participant_predictions_pdf(participant, blank=False):
     for award_key, label in AWARD_CHOICES:
         awards_rows.append([
             _p(label, cell_style),
-            _p('' if blank else saved_awards.get(award_key, ''), cell_style),
+            _p(saved_awards.get(award_key, ''), cell_style),
         ])
     story.append(_table(awards_rows, [320, 360]))
 
     doc.build(story)
     return buffer.getvalue()
+
+
+def build_participant_predictions_pdf(participant, blank=False):
+    """Genera el PDF pedido usando la plantilla compartida como base."""
+    template_bytes = _template_pdf_bytes()
+    if blank:
+        return template_bytes
+
+    return _build_complete_predictions_pdf(participant)

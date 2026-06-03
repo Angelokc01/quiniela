@@ -9,36 +9,24 @@ FASE DE GRUPOS
   - 1 pt:  acertar la posición exacta de un equipo dentro de su grupo (4 por grupo).
 
 CLASIFICADOS POR RONDA
-  - Dieciseisavos (R32): 6 si el equipo está en la MISMA llave; 3 si está en R32
-    pero en llave diferente.
   - Octavos (R16): 12 llave correcta, 6 incorrecta.
-    (¡ojo a la redacción del usuario! En su mensaje dice "6 puntos equipo exacto
-    en octavos / 3 puntos equipo en octavos llave diferente" — interpretamos eso
-    como dieciseisavos = R32 = 6/3, y octavos R16 = 12/6.)
-    Releyendo: el usuario escribió literalmente:
-      "6 puntos equipo exacto en octavos de final. 3 puntos equipo en octavos
-       de final pero en llave diferente. 12 puntos equipo en cuartos llave
-       correcta 6 incorrecta."
-    Su nomenclatura: "octavos de final" = R32 (porque el mundial 2026 tiene R32
-    como octavos coloquialmente). Mantenemos esa interpretación.
   - Cuartos (QF):    12 llave correcta, 6 incorrecta.
   - Semis (SF):      24 llave correcta, 12 incorrecta.
   - Finalistas:      30 llave correcta, 15 incorrecta.
+
+MARCADOR EXACTO EN ELIMINATORIA (el orden top-bottom importa):
+    - R32 (dieciseisavos): 4
+    - R16 (octavos):       5
+    - QF  (cuartos):       6
+    - SF  (semis):         7
+    - 3rd place:           7
+    - Final:               8
 
 POSICIÓN FINAL
   - 50 campeón
   - 30 subcampeón
   - 15 tercer puesto
   - 8  cuarto puesto
-
-MARCADOR EXACTO EN ELIMINATORIA (no importa quiénes jueguen, sólo el marcador,
-  en el orden top-bottom del bracket del usuario):
-  - R32 (dieciseisavos): 4
-  - R16 (octavos):       5
-  - QF  (cuartos):       6
-  - SF  (semis):         7
-  - 3rd place:           7
-  - Final:               8
 
 PREMIOS INDIVIDUALES
   - Bota Oro:     10
