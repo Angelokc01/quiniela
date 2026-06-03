@@ -53,9 +53,18 @@
   </footer>
 
   <nav class="mobile-bottom-nav" aria-label="Navegación principal">
-    <a href="{% url 'inicio:home' %}">Inicio</a>
-    <a href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
-    <a href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
+    <a class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'inicio:home' %}">
+      <span class="mobile-nav-icon" aria-hidden="true"></span>
+      <span class="mobile-nav-label">Inicio</span>
+    </a>
+    <a class="mobile-nav-item {% if request.resolver_match.url_name == 'choose_participant' %}active{% endif %}" href="{% url 'inicio:choose_participant' %}">
+      <span class="mobile-nav-icon" aria-hidden="true"></span>
+      <span class="mobile-nav-label">Mis predicciones</span>
+    </a>
+    <a class="mobile-nav-item {% if request.resolver_match.url_name == 'sistema_puntos' %}active{% endif %}" href="{% url 'inicio:sistema_puntos' %}">
+      <span class="mobile-nav-icon" aria-hidden="true"></span>
+      <span class="mobile-nav-label">Sistema de puntos</span>
+    </a>
   </nav>
 </body>
 </html>
