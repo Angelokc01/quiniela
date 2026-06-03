@@ -25,6 +25,8 @@ urlpatterns = [
     path('predicciones/', views.choose_participant, name='choose_participant'),
     path('predicciones/<int:participant_id>/', views.predictions_dashboard,
          name='predictions_dashboard'),
+    path('predicciones/<int:participant_id>/pdf/<str:mode>/',
+         views.download_predictions_pdf, name='predictions_pdf'),
     path('predicciones/<int:participant_id>/grupos/', views.predict_group_stage,
          name='predict_group_stage'),
     path('predicciones/<int:participant_id>/bracket/', views.predict_bracket,

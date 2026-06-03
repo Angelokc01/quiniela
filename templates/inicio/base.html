@@ -10,27 +10,29 @@
 <body>
   <header class="topbar">
     <a href="{% url 'inicio:home' %}" class="brand">⚽ Quiniela 2026</a>
-    <div class="topbar-nav-box">
+    <div class="topbar-nav-box topbar-nav-primary">
       <nav>
         <a href="{% url 'inicio:home' %}">Inicio</a>
         <a href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
         <a href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
-        {% if request.session.is_app_admin %}
-          <span class="admin-pill">Admin</span>
-          <form method="post" action="{% url 'inicio:admin_logout' %}" style="display:inline">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button class="link-btn" type="submit">Salir admin</button>
-          </form>
-        {% else %}
-          <a href="{% url 'inicio:admin_login' %}?next={{ request.path|urlencode }}">Entrar admin</a>
-        {% endif %}
-        <form method="post" action="{% url 'inicio:sync_now' %}" style="display:inline">
+      </nav>
+    </div>
+    <div class="topbar-nav-box topbar-nav-admin">
+      {% if request.session.is_app_admin %}
+        <span class="admin-pill">Admin</span>
+        <form method="post" action="{% url 'inicio:admin_logout' %}" class="topbar-inline-form">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.path }}">
-          <button class="link-btn" type="submit">Sincronizar API</button>
+          <button class="link-btn" type="submit">Salir admin</button>
         </form>
-      </nav>
+      {% else %}
+        <a href="{% url 'inicio:admin_login' %}?next={{ request.path|urlencode }}">Entrar admin</a>
+      {% endif %}
+      <form method="post" action="{% url 'inicio:sync_now' %}" class="topbar-inline-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="link-btn" type="submit">Sincronizar API</button>
+      </form>
     </div>
   </header>
 
@@ -49,5 +51,11 @@
   <footer class="footer">
     <small>Data: wc2026api.com · Mundial 2026 · Demo Django</small>
   </footer>
+
+  <nav class="mobile-bottom-nav" aria-label="Navegación principal">
+    <a href="{% url 'inicio:home' %}">Inicio</a>
+    <a href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
+    <a href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
+  </nav>
 </body>
 </html>

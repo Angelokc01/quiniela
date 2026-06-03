@@ -31,7 +31,7 @@
       {% if group_done %}
         <p>{{ bracket_count }} predicciones de slots guardadas</p>
       {% else %}
-        <p class="muted">Termina la fase de grupos primero</p>
+        <p class="muted">Disponible cuando termine la fase de grupos</p>
       {% endif %}
     </a>
 
@@ -44,6 +44,11 @@
   <div class="actions">
     <a class="btn" href="{% url 'inicio:leaderboard' participant.betting_group.id %}">Tabla del grupo</a>
     <a class="btn ghost" href="{% url 'inicio:choose_participant' %}">Cambiar participante</a>
+  </div>
+
+  <div class="actions">
+    <a class="btn ghost" href="{% url 'inicio:predictions_pdf' participant.id 'blank' %}">PDF vacío</a>
+    <a class="btn primary" href="{% url 'inicio:predictions_pdf' participant.id 'complete' %}">PDF con mis predicciones</a>
   </div>
 </section>
 {% endblock %}

@@ -22,6 +22,10 @@ html, body {
   line-height: 1.5;
 }
 
+body {
+  min-height: 100vh;
+}
+
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
@@ -43,6 +47,15 @@ a:hover { text-decoration: underline; }
 }
 .topbar nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .topbar nav a { color: var(--text); }
+.topbar-nav-admin {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+}
+.topbar-inline-form {
+  display: inline-flex;
+  margin: 0;
+}
 
 .container {
   max-width: 1100px; margin: 0 auto; padding: 1.5rem;
@@ -51,6 +64,10 @@ a:hover { text-decoration: underline; }
 .footer {
   text-align: center; padding: 2rem 1rem;
   color: var(--muted); border-top: 1px solid var(--border); margin-top: 3rem;
+}
+
+.mobile-bottom-nav {
+  display: none;
 }
 
 /* Messages */
@@ -194,6 +211,19 @@ table.matches tr.locked { opacity: 0.55; }
     padding: .9rem 1rem;
   }
 
+  .topbar-nav-box {
+    width: 100%;
+  }
+
+  .topbar-nav-primary {
+    order: 2;
+  }
+
+  .topbar-nav-admin {
+    order: 3;
+    flex-wrap: wrap;
+  }
+
   .topbar nav {
     width: 100%;
     gap: .5rem;
@@ -211,6 +241,48 @@ table.matches tr.locked { opacity: 0.55; }
   .card, .card-mini {
     padding: 1rem;
     border-radius: 10px;
+  }
+
+  .footer {
+    padding-bottom: 5.5rem;
+  }
+
+  .mobile-bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .35rem;
+    position: fixed;
+    left: .75rem;
+    right: .75rem;
+    bottom: .75rem;
+    z-index: 50;
+    background: rgba(26, 32, 40, 0.96);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: .45rem;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(12px);
+  }
+
+  .mobile-bottom-nav a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 3rem;
+    padding: .55rem .5rem;
+    border-radius: 14px;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    font-size: .9rem;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .mobile-bottom-nav a:hover {
+    text-decoration: none;
+    border-color: var(--primary);
   }
 
   .actions {

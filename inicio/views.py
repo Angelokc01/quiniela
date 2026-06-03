@@ -6,7 +6,7 @@ from collections import defaultdict
 import os
 
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -27,8 +27,9 @@ from .bracket import (
 )
 from .scoring import (
     participant_points_breakdown, betting_group_leaderboard,
-    build_actual_bracket,
+    group_stage_complete,
 )
+from .pdf_reports import build_participant_predictions_pdf
 from .wc_api import sync_matches_to_db
 
 
@@ -214,8 +215,9 @@ def predictions_dashboard(request, participant_id):
     standings_done = GroupStandingPrediction.objects.filter(
         participant=participant).count()
 
-    # ¿el participante completó la fase de grupos para que se le habilite el bracket?
-    group_done = (n_preds_group >= n_matches_group and n_matches_group > 0)
+    # El bracket se habilita cuando la fase de grupos termina en el torneo.
+    group_done = group_stage_complete()
+    group_predictions_done = (n_preds_group >= n_matches_group and n_matches_group > 0)
 
     bracket_count = BracketPrediction.objects.filter(participant=participant).count()
     awards_count = AwardPrediction.objects.filter(participant=participant).count()
@@ -227,12 +229,30 @@ def predictions_dashboard(request, participant_id):
         'n_matches_group': n_matches_group,
         'n_preds_group': n_preds_group,
         'group_done': group_done,
+        'group_predictions_done': group_predictions_done,
         'standings_done': standings_done,
         'bracket_count': bracket_count,
         'awards_count': awards_count,
         'breakdown': breakdown,
         'is_app_admin': is_app_admin(request),
     })
+
+
+def download_predictions_pdf(request, participant_id, mode):
+    participant = get_object_or_404(Participant, id=participant_id)
+    ensure_group_matches_synced(request)
+
+    if mode not in {'blank', 'complete'}:
+        messages.error(request, 'Modo de PDF inválido.')
+        return redirect('inicio:predictions_dashboard', participant_id=participant.id)
+
+    pdf_bytes = build_participant_predictions_pdf(participant, blank=(mode == 'blank'))
+    safe_name = participant.name.strip().replace(' ', '_') or 'participante'
+    filename = f'quiniela_{safe_name}_{mode}.pdf'
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 # ============================================================
@@ -380,16 +400,17 @@ def predict_group_stage(request, participant_id):
 def predict_bracket(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
 
+    if not group_stage_complete():
+        messages.info(request, 'El bracket de eliminación se habilita cuando termina la fase de grupos.')
+        return redirect('inicio:predictions_dashboard', participant_id=participant.id)
+
     if request.method == 'POST' and participant.predictions_locked and not is_app_admin(request):
         messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
         return redirect('inicio:predict_bracket', participant_id=participant.id)
 
-    # Para poder predecir bracket, necesitamos saber qué equipos clasifican.
-    # Usamos las predicciones del participante para derivar quién va a R32 (=top 2
-    # de cada grupo + 8 mejores terceros según sus predicciones).
-    pred_standings = predicted_group_standings(participant)
-    suggested_bracket = bracket_from_standings(pred_standings)
-    # suggested_bracket: dict slot R32_x -> equipo (según predicciones de fase de grupos)
+    # R32 se arma con las clasificaciones reales del torneo.
+    actual_standings = actual_group_standings()
+    suggested_bracket = bracket_from_standings(actual_standings)
 
     def next_slot_for_round(round_name, slot_top):
         try:

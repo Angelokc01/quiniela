@@ -68,7 +68,6 @@ from .bracket import (
 
 # Tabla de puntos para clasificación a cada ronda
 ROUND_CORRECT_SLOT_POINTS = {
-    ROUND_R32: (6, 3),   # (mismo slot, otro slot pero misma ronda)
     ROUND_R16: (12, 6),
     ROUND_QF:  (12, 6),
     ROUND_SF:  (24, 12),
@@ -95,6 +94,18 @@ KNOCKOUT_SCORE_POINTS = {
 }
 
 
+def group_stage_complete() -> bool:
+    """Devuelve True cuando todos los partidos de fase de grupos ya terminaron."""
+    total_group_matches = Match.objects.filter(round=ROUND_GROUP).count()
+    if total_group_matches == 0:
+        return False
+    finished_group_matches = Match.objects.filter(
+        round=ROUND_GROUP,
+        status=Match.STATUS_COMPLETED,
+    ).count()
+    return finished_group_matches == total_group_matches
+
+
 # ============================================================
 # Cálculo de bracket REAL (qué equipos están en cada slot,
 # y quién ganó cada llave eliminatoria) basándonos en Match real
@@ -118,16 +129,11 @@ def build_actual_bracket() -> Dict[str, str]:
     THIRD, FINAL, CHAMPION/RUNNER_UP/THIRD_PLACE/FOURTH_PLACE), basado en
     resultados reales de la API ya cargados en `Match`.
     
-    IMPORTANTE: Solo devuelve equipos de R32 si hay partidos finalizados en fase
-    de grupos. Si la fase de grupos aún no ha comenzado, devuelve un dict vacío
-    para evitar dar puntos erróneamente.
+    IMPORTANTE: Solo devuelve equipos si la fase de grupos ya terminó completa.
+    Si todavía faltan partidos de grupos, devuelve un dict vacío para evitar
+    dar puntos sobre una llave parcial.
     """
-    # Verificar si hay partidos finalizados en fase de grupos
-    finished_group_matches = Match.objects.filter(
-        round=ROUND_GROUP, status=Match.STATUS_COMPLETED).count()
-    
-    # Si no hay partidos finalizados aún, devolver dict vacío
-    if finished_group_matches == 0:
+    if not group_stage_complete():
         return {}
     
     standings = actual_group_standings()
