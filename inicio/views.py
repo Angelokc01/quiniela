@@ -241,6 +241,7 @@ def predictions_dashboard(request, participant_id):
 def predict_group_stage(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
     ensure_group_matches_synced(request)
+    submitted_positions = {}
 
     if request.method == 'POST' and participant.predictions_locked and not is_app_admin(request):
         messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
@@ -276,6 +277,14 @@ def predict_group_stage(request, participant_id):
                 continue
             pending_group_preds.append((match, hs, as_))
 
+        # Guardamos primero los marcadores válidos para no perderlos si
+        # luego falla la validación de posiciones del grupo.
+        for match, hs, as_ in pending_group_preds:
+            GroupMatchPrediction.objects.update_or_create(
+                participant=participant, match=match,
+                defaults={'home_score': hs, 'away_score': as_},
+            )
+
         # También guardar predicciones de POSICIÓN del grupo si las enviaron
         positions_by_group = defaultdict(list)
         for key, value in request.POST.items():
@@ -293,6 +302,7 @@ def predict_group_stage(request, participant_id):
                 continue
             positions_by_group[group_name].append((team, pos))
             pending_standing_preds.append((group_name, team, pos))
+            submitted_positions[(group_name, team)] = pos
 
         invalid_groups = []
         for group_name, items in positions_by_group.items():
@@ -311,12 +321,6 @@ def predict_group_stage(request, participant_id):
                 f'Revisa: {", ".join(sorted(set(invalid_groups)))}.'
             )
         else:
-            for match, hs, as_ in pending_group_preds:
-                GroupMatchPrediction.objects.update_or_create(
-                    participant=participant, match=match,
-                    defaults={'home_score': hs, 'away_score': as_},
-                )
-
             for group_name, team, pos in pending_standing_preds:
                 GroupStandingPrediction.objects.update_or_create(
                     participant=participant,
@@ -359,7 +363,7 @@ def predict_group_stage(request, participant_id):
             standings_table[g].append({
                 'team': row['team'],
                 'auto_pos': idx,
-                'user_pos': existing_pos.get((g, row['team']), idx),
+                'user_pos': submitted_positions.get((g, row['team']), existing_pos.get((g, row['team']), idx)),
                 'stats': row,
             })
 

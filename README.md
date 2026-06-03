@@ -39,8 +39,6 @@ Esto:
 2. Upsertea en la BD local.
 3. Recalcula puntos (en realidad los puntos se calculan on-demand, así que basta con sincronizar).
 
-Si quieres automatizar, usa cron o GitHub Actions cada ~30 minutos durante el mundial.
-
 ## Despliegue en Render
 
 El repositorio incluye [render.yaml](render.yaml) para desplegar la web y la base de datos gratis en Render.
@@ -57,16 +55,13 @@ Pasos rápidos:
 	- `WC2026_API_URL=https://api.wc2026api.com`
 	- `WC2026_API_TOKEN=...`
 4. El servicio web usa `gunicorn quiniela.wsgi:application` como comando de arranque.
-5. Copia el `DATABASE_URL` externo de tu base de datos de Render y guárdalo como secreto en GitHub con el nombre `DATABASE_URL_EXTERNAL`.
-6. Guarda también `SECRET_KEY` y `WC2026_API_TOKEN` como secretos en GitHub.
-7. El workflow [sync_matches](.github/workflows/sync_matches.yml) ejecuta `python manage.py sync_matches` cada 30 minutos usando GitHub Actions.
+5. Si quieres sincronizar, ejecuta manualmente `python manage.py sync_matches` cuando lo necesites.
 
 Notas:
 
 - En producción, Render usa PostgreSQL mediante `DATABASE_URL`.
 - Los archivos estáticos se recogen con `python manage.py collectstatic --noinput` durante el build.
 - No dejes el token de la API hardcodeado en el código; usa variables de entorno.
-- Si no quieres depender de GitHub Actions, entonces el despliegue ya no será 100% gratis porque Render cobra por cron jobs.
 
 ## Lo que falta y vale la pena considerar
 
