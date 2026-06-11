@@ -4,15 +4,15 @@ Cálculo de puntos.
 Tabla de puntos (definida por el usuario):
 
 FASE DE GRUPOS
-  - 3 pts: resultado exacto de un partido (marcador exacto).
-  - 1 pt:  acertar el ganador (incluye empate) en fase de grupos.
-  - 1 pt:  acertar la posición exacta de un equipo dentro de su grupo (4 por grupo).
+  - 5 pts: resultado exacto de un partido (marcador exacto).
+  - 2 pt:  acertar el ganador (incluye empate) en fase de grupos.
+  - 2 pt:  acertar la posición exacta de un equipo dentro de su grupo (4 por grupo).
 
 CLASIFICADOS POR RONDA
-  - Octavos (R16): 12 llave correcta, 6 incorrecta.
-  - Cuartos (QF):    12 llave correcta, 6 incorrecta.
-  - Semis (SF):      24 llave correcta, 12 incorrecta.
-  - Finalistas:      30 llave correcta, 15 incorrecta.
+  - Octavos (R16): 5 llave correcta, 5 incorrecta.
+  - Cuartos (QF):    8 llave correcta, 8 incorrecta.
+  - Semis (SF):      12 llave correcta, 12 incorrecta.
+  - Finalistas:      15 llave correcta, 15 incorrecta.
 
 MARCADOR EXACTO EN ELIMINATORIA (el orden top-bottom importa):
     - R32 (dieciseisavos): 4
@@ -56,19 +56,19 @@ from .bracket import (
 
 # Tabla de puntos para clasificación a cada ronda
 ROUND_CORRECT_SLOT_POINTS = {
-    ROUND_R16: (12, 6),
-    ROUND_QF:  (12, 6),
-    ROUND_SF:  (24, 12),
+    ROUND_R16: (5, 5),
+    ROUND_QF:  (8, 8),
+    ROUND_SF:  (12, 12),
     # finalistas = participar en la final (estar en FINAL_1 o FINAL_2)
-    ROUND_FINAL: (30, 15),
+    ROUND_FINAL: (15, 15),
 }
 
 # Puntos por posición final (campeón, subcampeón, etc.)
 FINAL_POSITION_POINTS = {
-    SLOT_CHAMPION:  50,
-    SLOT_RUNNER_UP: 30,
-    SLOT_THIRD:     15,
-    SLOT_FOURTH:    8,
+    SLOT_CHAMPION:  30,
+    SLOT_RUNNER_UP: 20,
+    SLOT_THIRD:     10,
+    SLOT_FOURTH:    5,
 }
 
 # Puntos por marcador exacto de un partido de eliminatoria (orden top-bottom)
@@ -192,20 +192,20 @@ def build_actual_bracket() -> Dict[str, str]:
 def _points_group_match(pred: GroupMatchPrediction, match: Match) -> int:
     if not match.is_finished:
         return 0
-    # 3 pts marcador exacto
+    # 5 pts marcador exacto
     if pred.home_score == match.home_score and pred.away_score == match.away_score:
-        return 3
-    # 1 pt acertar el ganador (o empate)
+        return 5
+    # 2 pts acertar el ganador (o empate)
     def sign(a, b):
         return 0 if a == b else (1 if a > b else -1)
     if sign(pred.home_score, pred.away_score) == sign(match.home_score, match.away_score):
-        return 1
+        return 2
     return 0
 
 
 def _points_group_standing(pred: GroupStandingPrediction,
                            actual_standings: Dict[str, list]) -> int:
-    """1 pt si el equipo quedó en la posición exacta dentro de su grupo."""
+    """2 pts si el equipo quedó en la posición exacta dentro de su grupo."""
     rows = actual_standings.get(pred.group_name, [])
     # Sólo se otorga el punto si la fase de grupos del grupo terminó.
     # Lo aproximamos: todos los 6 partidos del grupo están finalizados.
@@ -219,7 +219,7 @@ def _points_group_standing(pred: GroupStandingPrediction,
     if target_pos < 1 or target_pos > len(rows):
         return 0
     if rows[target_pos - 1]['team'] == pred.team:
-        return 1
+        return 2
     return 0
 
 
