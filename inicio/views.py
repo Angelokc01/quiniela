@@ -262,8 +262,9 @@ def predict_group_stage(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
     ensure_group_matches_synced(request)
     submitted_positions = {}
+    admin_mode = is_app_admin(request)
 
-    if request.method == 'POST' and participant.predictions_locked and not is_app_admin(request):
+    if request.method == 'POST' and participant.predictions_locked and not admin_mode:
         messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
         return redirect('inicio:predict_group_stage', participant_id=participant.id)
 
@@ -292,8 +293,8 @@ def predict_group_stage(request, participant_id):
             match = Match.objects.filter(id=match_id, round=ROUND_GROUP).first()
             if not match:
                 continue
-            # No permitir editar si el partido ya empezó
-            if match.kickoff_in_past:
+            # No permitir editar si el partido ya empezó (admin puede sobrepasar esto)
+            if match.kickoff_in_past and not admin_mode:
                 continue
             pending_group_preds.append((match, hs, as_))
 
@@ -365,7 +366,7 @@ def predict_group_stage(request, participant_id):
         grouped[m.group_name].append({
             'match': m,
             'pred': pred,
-            'locked': m.kickoff_in_past,
+            'locked': m.kickoff_in_past and not admin_mode,
         })
 
     # Standings de las predicciones del participante → para mostrar posiciones sugeridas
@@ -391,6 +392,7 @@ def predict_group_stage(request, participant_id):
         'participant': participant,
         'grouped': dict(sorted(grouped.items())),
         'standings_table': dict(sorted(standings_table.items())),
+        'is_app_admin': admin_mode,
     })
 
 
@@ -399,12 +401,13 @@ def predict_group_stage(request, participant_id):
 # ============================================================
 def predict_bracket(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
+    admin_mode = is_app_admin(request)
 
-    if not group_stage_complete():
+    if not group_stage_complete() and not admin_mode:
         messages.info(request, 'El bracket de eliminación se habilita cuando termina la fase de grupos.')
         return redirect('inicio:predictions_dashboard', participant_id=participant.id)
 
-    if request.method == 'POST' and participant.predictions_locked and not is_app_admin(request):
+    if request.method == 'POST' and participant.predictions_locked and not admin_mode:
         messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
         return redirect('inicio:predict_bracket', participant_id=participant.id)
 
