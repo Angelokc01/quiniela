@@ -4,17 +4,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0e14">
   <title>{% block title %}Quiniela Mundial 2026{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'inicio/css/style.css' %}">
 </head>
 <body>
   <header class="topbar">
-    <a href="{% url 'inicio:home' %}" class="brand">⚽ Quiniela 2026</a>
+    <a href="{% url 'inicio:home' %}" class="brand">
+      <span class="brand-badge">⚽</span>
+      <span>Quiniela 2026</span>
+    </a>
     <div class="topbar-nav-box topbar-nav-primary">
       <nav>
-        <a href="{% url 'inicio:home' %}">Inicio</a>
-        <a href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
-        <a href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
+        <a class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'inicio:home' %}">Inicio</a>
+        <a class="{% if request.resolver_match.url_name == 'choose_participant' %}active{% endif %}" href="{% url 'inicio:choose_participant' %}">Mis predicciones</a>
+        <a class="{% if request.resolver_match.url_name == 'sistema_puntos' %}active{% endif %}" href="{% url 'inicio:sistema_puntos' %}">Sistema de puntos</a>
       </nav>
     </div>
     <div class="topbar-nav-box topbar-nav-admin">
@@ -54,16 +61,22 @@
 
   <nav class="mobile-bottom-nav" aria-label="Navegación principal">
     <a class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'inicio:home' %}">
-      <span class="mobile-nav-icon" aria-hidden="true"></span>
+      <span class="mobile-nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+      </span>
       <span class="mobile-nav-label">Inicio</span>
     </a>
     <a class="mobile-nav-item {% if request.resolver_match.url_name == 'choose_participant' %}active{% endif %}" href="{% url 'inicio:choose_participant' %}">
-      <span class="mobile-nav-icon" aria-hidden="true"></span>
-      <span class="mobile-nav-label">Mis predicciones</span>
+      <span class="mobile-nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </span>
+      <span class="mobile-nav-label">Predicciones</span>
     </a>
     <a class="mobile-nav-item {% if request.resolver_match.url_name == 'sistema_puntos' %}active{% endif %}" href="{% url 'inicio:sistema_puntos' %}">
-      <span class="mobile-nav-icon" aria-hidden="true"></span>
-      <span class="mobile-nav-label">Sistema de puntos</span>
+      <span class="mobile-nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      </span>
+      <span class="mobile-nav-label">Puntos</span>
     </a>
   </nav>
 </body>

@@ -4,14 +4,19 @@
 
 {% block content %}
 <section class="hero">
+  <span class="eyebrow">🏆 Canadá · México · USA</span>
   <h1>Quiniela Mundial 2026</h1>
-  <p>Predice los partidos y compite con tus amigos o familia.</p>
+  <p>Predice los partidos, arma tu bracket y compite con tus amigos o familia por el primer puesto.</p>
+  <div class="actions">
+    <a class="btn primary" href="{% url 'inicio:choose_participant' %}">Empezar a predecir</a>
+    <a class="btn ghost" href="{% url 'inicio:sistema_puntos' %}">Ver sistema de puntos</a>
+  </div>
 </section>
 
 <section class="cards">
-  <div class="card">
+  <div class="card card-accent">
     <h2>Grupos de apuestas</h2>
-    <p>Crea un nuevo grupo o únete a uno existente.</p>
+    <p class="muted">Crea un nuevo grupo o únete a uno existente.</p>
     <a class="btn primary" href="{% url 'inicio:create_group' %}">+ Crear grupo</a>
 
     <h3>Grupos existentes</h3>
