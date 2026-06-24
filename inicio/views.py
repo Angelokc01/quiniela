@@ -6,6 +6,7 @@ from collections import defaultdict
 import os
 
 from django.contrib import messages
+from django.db.models import Count
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -27,7 +28,7 @@ from .bracket import (
 )
 from .scoring import (
     participant_points_breakdown, betting_group_leaderboard,
-    group_stage_complete,
+    group_stage_complete, _points_group_match,
 )
 from .pdf_reports import build_participant_predictions_pdf
 from .wc_api import sync_matches_to_db
@@ -681,6 +682,103 @@ def participant_detail(request, bg_id, participant_id):
     breakdown = participant_points_breakdown(participant)
     return render(request, 'inicio/participant_detail.html', {
         'bg': bg, 'participant': participant, 'breakdown': breakdown,
+    })
+
+
+# ============================================================
+# Próximos partidos y predicciones por partido
+# ============================================================
+def _selected_betting_group(request, groups):
+    """Devuelve el grupo de apuestas elegido vía ?bg=, o el primero disponible."""
+    bg_id = request.GET.get('bg')
+    if bg_id:
+        for g in groups:
+            if str(g.id) == str(bg_id):
+                return g
+    return groups[0] if groups else None
+
+
+def upcoming_matches(request):
+    """Lista de próximos partidos de fase de grupos y resultados recientes.
+    Cada partido enlaza a la lista de predicciones del grupo de apuestas elegido.
+    """
+    ensure_group_matches_synced(request)
+    groups = list(BettingGroup.objects.prefetch_related('participants').all())
+    selected_group = _selected_betting_group(request, groups)
+
+    group_matches = Match.objects.filter(round=ROUND_GROUP)
+    upcoming = list(
+        group_matches.exclude(status=Match.STATUS_COMPLETED)
+        .order_by('kickoff_utc', 'match_number')
+    )
+    recent = list(
+        group_matches.filter(status=Match.STATUS_COMPLETED)
+        .order_by('-kickoff_utc', '-match_number')[:12]
+    )
+
+    pred_counts = {}
+    n_participants = 0
+    if selected_group:
+        n_participants = selected_group.participants.count()
+        match_ids = [m.id for m in upcoming] + [m.id for m in recent]
+        counts = (
+            GroupMatchPrediction.objects
+            .filter(participant__betting_group=selected_group, match_id__in=match_ids)
+            .values('match_id')
+            .annotate(n=Count('match_id'))
+        )
+        pred_counts = {row['match_id']: row['n'] for row in counts}
+
+    def decorate(matches):
+        return [{'match': m, 'n_preds': pred_counts.get(m.id, 0)} for m in matches]
+
+    return render(request, 'inicio/upcoming_matches.html', {
+        'groups': groups,
+        'selected_group': selected_group,
+        'upcoming': decorate(upcoming),
+        'recent': decorate(recent),
+        'n_participants': n_participants,
+    })
+
+
+def match_predictions(request, match_id):
+    """Predicciones de todos los participantes de un grupo para un partido."""
+    match = get_object_or_404(Match, id=match_id)
+    groups = list(BettingGroup.objects.prefetch_related('participants').all())
+    selected_group = _selected_betting_group(request, groups)
+
+    rows = []
+    n_with_pred = 0
+    if selected_group:
+        preds = {
+            p.participant_id: p
+            for p in GroupMatchPrediction.objects.filter(
+                match=match, participant__betting_group=selected_group
+            )
+        }
+        for participant in selected_group.participants.all():
+            pred = preds.get(participant.id)
+            points = None
+            outcome = None
+            if pred is not None:
+                n_with_pred += 1
+                if match.is_finished:
+                    points = _points_group_match(pred, match)
+                    outcome = 'exact' if points == 5 else ('result' if points == 2 else 'miss')
+            rows.append({
+                'participant': participant,
+                'pred': pred,
+                'points': points,
+                'outcome': outcome,
+            })
+
+    return render(request, 'inicio/match_predictions.html', {
+        'match': match,
+        'groups': groups,
+        'selected_group': selected_group,
+        'rows': rows,
+        'n_with_pred': n_with_pred,
+        'is_group_match': match.round == ROUND_GROUP,
     })
 
 

@@ -1,0 +1,99 @@
+{% extends "inicio/base.html" %}
+
+{% block title %}{{ match.home_team }} vs {{ match.away_team }} – Predicciones{% endblock %}
+
+{% block content %}
+<section class="card">
+  <a class="link" href="{% url 'inicio:upcoming_matches' %}{% if selected_group %}?bg={{ selected_group.id }}{% endif %}">← Volver a partidos</a>
+
+  <div class="match-head">
+    <div class="match-head-meta">
+      {% if match.group_name %}<span class="fixture-group">{{ match.group_name }}</span>{% endif %}
+      {% if match.status == 'live' %}
+        <span class="status-badge live">● En vivo</span>
+      {% elif match.is_finished %}
+        <span class="status-badge done">Finalizado</span>
+      {% else %}
+        <span class="status-badge">{{ match.kickoff_utc|date:"D d M · H:i"|default:"Por confirmar" }}</span>
+      {% endif %}
+    </div>
+
+    <div class="match-score">
+      <span class="match-team">{{ match.home_team }}</span>
+      {% if match.is_finished or match.status == 'live' %}
+        <span class="match-result">{{ match.home_score|default:"0" }} <span class="muted">-</span> {{ match.away_score|default:"0" }}</span>
+      {% else %}
+        <span class="match-result muted">vs</span>
+      {% endif %}
+      <span class="match-team">{{ match.away_team }}</span>
+    </div>
+    {% if match.stadium %}<p class="muted small" style="text-align:center;margin:.25rem 0 0;">{{ match.stadium }}</p>{% endif %}
+  </div>
+
+  {% if groups %}
+    <form method="get" class="group-selector">
+      <label for="bg-select">Predicciones del grupo</label>
+      <select id="bg-select" name="bg" onchange="this.form.submit()">
+        {% for g in groups %}
+          <option value="{{ g.id }}" {% if selected_group and selected_group.id == g.id %}selected{% endif %}>{{ g.name }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button class="btn" type="submit">Ver</button></noscript>
+    </form>
+  {% endif %}
+
+  {% if not is_group_match %}
+    <div class="msg msg-info">Este es un partido de eliminatoria; las predicciones por participante se hacen en el bracket.</div>
+  {% elif not selected_group %}
+    <p class="muted">Crea un grupo de apuestas para ver predicciones.</p>
+  {% else %}
+    <p class="muted">
+      {{ n_with_pred }} de {{ rows|length }} participante{{ rows|length|pluralize }} de
+      <strong>{{ selected_group.name }}</strong> ya predijeron este partido.
+    </p>
+
+    <div class="responsive-table">
+      <table class="matches predictions-table">
+        <thead>
+          <tr>
+            <th>Participante</th>
+            <th style="text-align:center;">Predicción</th>
+            {% if match.is_finished %}<th style="text-align:right;">Puntos</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr class="{% if r.outcome %}outcome-{{ r.outcome }}{% endif %}">
+              <td>{{ r.participant.name }}</td>
+              <td style="text-align:center;">
+                {% if r.pred %}
+                  <span class="pred-score">{{ r.pred.home_score }} <span class="muted">-</span> {{ r.pred.away_score }}</span>
+                {% else %}
+                  <span class="muted small">sin predicción</span>
+                {% endif %}
+              </td>
+              {% if match.is_finished %}
+                <td style="text-align:right;">
+                  {% if r.pred %}
+                    {% if r.outcome == 'exact' %}<span class="pts-badge gold">+5 exacto</span>
+                    {% elif r.outcome == 'result' %}<span class="pts-badge green">+2 resultado</span>
+                    {% else %}<span class="muted">0</span>{% endif %}
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% empty %}
+            <tr><td colspan="3" class="muted">Este grupo no tiene participantes.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if not match.is_finished %}
+      <p class="muted small">Los puntos se mostrarán aquí cuando el partido tenga resultado final.</p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

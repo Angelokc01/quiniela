@@ -15,6 +15,10 @@ urlpatterns = [
      # Sistema de puntos
      path('sistema-de-puntos/', views.sistema_puntos, name='sistema_puntos'),
 
+     # Próximos partidos y predicciones por partido
+     path('partidos/', views.upcoming_matches, name='upcoming_matches'),
+     path('partidos/<int:match_id>/', views.match_predictions, name='match_predictions'),
+
     # Grupos
     path('grupos/crear/', views.create_group, name='create_group'),
      path('grupos/<int:bg_id>/eliminar/', views.delete_group, name='delete_group'),
