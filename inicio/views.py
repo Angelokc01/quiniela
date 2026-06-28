@@ -159,22 +159,65 @@ def manage_participants(request, bg_id):
             if pid:
                 Participant.objects.filter(id=pid, betting_group=bg).delete()
             return redirect('inicio:manage_participants', bg_id=bg.id)
+        # --- Candados de predicción (solo admin) ---
+        lock_fields = {
+            'group': 'lock_group',
+            'awards': 'lock_awards',
+            'bracket': 'lock_bracket',
+        }
+        section_labels = {
+            'group': 'fase de grupos',
+            'awards': 'premios',
+            'bracket': 'bracket',
+        }
         if action == 'toggle_lock':
             if not admin_mode:
                 messages.error(request, 'Solo el administrador puede bloquear predicciones.')
                 return redirect('inicio:manage_participants', bg_id=bg.id)
             pid = request.POST.get('participant_id')
+            field = lock_fields.get(request.POST.get('section'))
             participant = Participant.objects.filter(id=pid, betting_group=bg).first()
-            if participant:
-                participant.predictions_locked = not participant.predictions_locked
-                participant.save(update_fields=['predictions_locked'])
-                state = 'bloqueadas' if participant.predictions_locked else 'desbloqueadas'
-                messages.success(request, f'Predicciones de {participant.name} {state}.')
+            if participant and field:
+                new_value = not getattr(participant, field)
+                setattr(participant, field, new_value)
+                participant.save(update_fields=[field])
+                section = section_labels[request.POST.get('section')]
+                state = 'bloqueada' if new_value else 'desbloqueada'
+                messages.success(request, f'{participant.name}: {section} {state}.')
             return redirect('inicio:manage_participants', bg_id=bg.id)
+        if action == 'bulk_lock':
+            if not admin_mode:
+                messages.error(request, 'Solo el administrador puede bloquear predicciones.')
+                return redirect('inicio:manage_participants', bg_id=bg.id)
+            field = lock_fields.get(request.POST.get('section'))
+            value = request.POST.get('value') == '1'
+            if field:
+                n = bg.participants.update(**{field: value})
+                section = section_labels[request.POST.get('section')]
+                state = 'bloqueada' if value else 'desbloqueada'
+                messages.success(request, f'{section.capitalize()} {state} para los {n} participantes del grupo.')
+            return redirect('inicio:manage_participants', bg_id=bg.id)
+
+    participants_data = []
+    for p in bg.participants.all():
+        participants_data.append({
+            'p': p,
+            'locks': [
+                {'section': 'group', 'label': 'Grupos', 'locked': p.lock_group},
+                {'section': 'awards', 'label': 'Premios', 'locked': p.lock_awards},
+                {'section': 'bracket', 'label': 'Bracket', 'locked': p.lock_bracket},
+            ],
+        })
 
     return render(request, 'inicio/manage_participants.html', {
         'bg': bg,
-        'participants': bg.participants.all(),
+        'participants_data': participants_data,
+        'has_participants': bool(participants_data),
+        'sections': [
+            {'section': 'group', 'label': 'Fase de grupos'},
+            {'section': 'awards', 'label': 'Premios'},
+            {'section': 'bracket', 'label': 'Bracket'},
+        ],
         'is_app_admin': admin_mode,
     })
 
@@ -264,9 +307,10 @@ def predict_group_stage(request, participant_id):
     ensure_group_matches_synced(request)
     submitted_positions = {}
     admin_mode = is_app_admin(request)
+    locked = participant.lock_group and not admin_mode
 
-    if request.method == 'POST' and participant.predictions_locked and not admin_mode:
-        messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
+    if request.method == 'POST' and locked:
+        messages.error(request, 'Las predicciones de fase de grupos de este participante están bloqueadas por el administrador.')
         return redirect('inicio:predict_group_stage', participant_id=participant.id)
 
     if request.method == 'POST':
@@ -394,6 +438,7 @@ def predict_group_stage(request, participant_id):
         'grouped': dict(sorted(grouped.items())),
         'standings_table': dict(sorted(standings_table.items())),
         'is_app_admin': admin_mode,
+        'locked': locked,
     })
 
 
@@ -404,8 +449,8 @@ def predict_bracket(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
     admin_mode = is_app_admin(request)
 
-    if request.method == 'POST' and participant.predictions_locked and not admin_mode:
-        messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
+    if request.method == 'POST' and participant.lock_bracket and not admin_mode:
+        messages.error(request, 'Las predicciones del bracket de este participante están bloqueadas por el administrador.')
         return redirect('inicio:predict_bracket', participant_id=participant.id)
 
     # Los dieciseisavos salen de los partidos REALES de la API (round_of_32):
@@ -653,7 +698,7 @@ def predict_bracket(request, participant_id):
         'participant': participant,
         'rounds': rounds,
         'podium': podium,
-        'locked': participant.predictions_locked and not admin_mode,
+        'locked': participant.lock_bracket and not admin_mode,
     })
 
 
@@ -662,10 +707,11 @@ def predict_bracket(request, participant_id):
 # ============================================================
 def predict_awards(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
+    locked = participant.lock_awards and not is_app_admin(request)
 
     if request.method == 'POST':
-        if participant.predictions_locked and not is_app_admin(request):
-            messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
+        if locked:
+            messages.error(request, 'Las predicciones de premios de este participante están bloqueadas por el administrador.')
             return redirect('inicio:predict_awards', participant_id=participant.id)
         for award_key, _label in AWARD_CHOICES:
             value = (request.POST.get(award_key) or '').strip()
@@ -690,6 +736,7 @@ def predict_awards(request, participant_id):
     return render(request, 'inicio/predict_awards.html', {
         'participant': participant,
         'awards': awards,
+        'locked': locked,
     })
 
 

@@ -9,6 +9,10 @@
     se registre en el admin al finalizar el mundial.
   </p>
 
+  {% if locked %}
+    <div class="msg msg-error">El administrador bloqueó los premios de este participante. Solo lectura.</div>
+  {% endif %}
+
   <form method="post">
     {% csrf_token %}
     <div class="responsive-table">
@@ -18,7 +22,7 @@
           {% for a in awards %}
             <tr>
               <td>{{ a.label }}</td>
-              <td><input type="text" name="{{ a.key }}" value="{{ a.value }}" maxlength="120" placeholder="Nombre del jugador"></td>
+              <td><input type="text" name="{{ a.key }}" value="{{ a.value }}" maxlength="120" placeholder="Nombre del jugador" {% if locked %}disabled{% endif %}></td>
               <td class="muted">{{ a.points }}</td>
             </tr>
           {% endfor %}
@@ -26,7 +30,7 @@
       </table>
     </div>
     <div class="actions">
-      <button class="btn primary" type="submit">Guardar</button>
+      {% if not locked %}<button class="btn primary" type="submit">Guardar</button>{% endif %}
       <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
     </div>
   </form>

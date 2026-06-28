@@ -670,6 +670,58 @@ select { appearance: none; -webkit-appearance: none;
 }
 
 /* ============================================================
+   Bloqueos de predicciones (admin)
+   ============================================================ */
+.lock-panel {
+  margin: 1.25rem 0;
+  padding: 1rem 1.1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.lock-panel h3 { margin: 0 0 .15rem; font-size: 1rem; }
+.lock-row {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  padding: .55rem 0;
+  border-top: 1px solid var(--border-soft);
+}
+.lock-row:first-of-type { border-top: none; }
+.lock-row-label { flex: 1 1 140px; font-weight: 600; min-width: 120px; }
+.lock-row .btn { padding: .4rem .8rem; font-size: .85rem; }
+
+.participant-row { flex-wrap: wrap; }
+.participant-row .participant-name { flex: 1 1 140px; font-weight: 600; }
+.lock-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+.participant-actions { display: flex; gap: .8rem; align-items: center; }
+
+.lock-chip {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .3rem .6rem; border-radius: 999px;
+  font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer;
+  background: var(--surface-3); color: var(--text-soft);
+  border: 1px solid var(--border);
+  transition: border-color .14s ease, background .14s ease, color .14s ease;
+}
+button.lock-chip:hover { border-color: var(--primary); color: var(--text); }
+.lock-chip.is-locked {
+  background: var(--danger-soft); border-color: rgba(255,93,108,0.45); color: #ffc7cd;
+}
+
+.lock-tag {
+  display: inline-block; margin-left: .35rem;
+  padding: .1rem .45rem; border-radius: 999px;
+  font-size: .68rem; font-weight: 700; vertical-align: middle;
+  background: var(--danger-soft); border: 1px solid rgba(255,93,108,0.4); color: #ffc7cd;
+}
+
+@media (max-width: 720px) {
+  .participant-row .participant-name { flex: 1 1 100%; }
+  .lock-chips { width: 100%; }
+  .lock-chip { flex: 1 1 auto; justify-content: center; }
+  .lock-row .btn { flex: 1 1 auto; }
+}
+
+/* ============================================================
    Mobile
    ============================================================ */
 @media (max-width: 720px) {

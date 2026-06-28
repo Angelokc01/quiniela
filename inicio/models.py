@@ -74,7 +74,10 @@ class Participant(models.Model):
         BettingGroup, on_delete=models.CASCADE, related_name='participants'
     )
     name = models.CharField(max_length=120)
-    predictions_locked = models.BooleanField(default=False)
+    # Candados de predicción por sección (los activa el administrador).
+    lock_group = models.BooleanField(default=False)
+    lock_awards = models.BooleanField(default=False)
+    lock_bracket = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -83,6 +86,10 @@ class Participant(models.Model):
 
     def __str__(self):
         return f'{self.name} - {self.betting_group.name}'
+
+    @property
+    def any_locked(self):
+        return self.lock_group or self.lock_awards or self.lock_bracket
 
 
 # ------------------------------------------------------------

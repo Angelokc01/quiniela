@@ -12,32 +12,69 @@
     <button class="btn primary" type="submit">Agregar</button>
   </form>
 
+  {% if is_app_admin and has_participants %}
+    <div class="lock-panel">
+      <h3>Bloqueos globales <span class="muted small">(todo el grupo)</span></h3>
+      <p class="muted small">Cierra o abre una sección para <strong>todos</strong> los participantes de este grupo de una vez.</p>
+      {% for s in sections %}
+        <div class="lock-row">
+          <span class="lock-row-label">{{ s.label }}</span>
+          <form method="post" class="topbar-inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_lock">
+            <input type="hidden" name="section" value="{{ s.section }}">
+            <input type="hidden" name="value" value="1">
+            <button class="btn danger" type="submit">🔒 Bloquear a todos</button>
+          </form>
+          <form method="post" class="topbar-inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_lock">
+            <input type="hidden" name="section" value="{{ s.section }}">
+            <input type="hidden" name="value" value="0">
+            <button class="btn ghost" type="submit">🔓 Abrir a todos</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <ul class="grouplist">
-    {% for p in participants %}
-      <li>
-        <span>
-          {{ p.name }}
-          {% if p.predictions_locked %}
-            <span class="admin-pill">Bloqueado</span>
+    {% for row in participants_data %}
+      <li class="participant-row">
+        <span class="participant-name">{{ row.p.name }}</span>
+
+        <div class="lock-chips">
+          {% for lk in row.locks %}
+            {% if is_app_admin %}
+              <form method="post" class="topbar-inline-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_lock">
+                <input type="hidden" name="section" value="{{ lk.section }}">
+                <input type="hidden" name="participant_id" value="{{ row.p.id }}">
+                <button class="lock-chip {% if lk.locked %}is-locked{% endif %}" type="submit"
+                        title="{% if lk.locked %}Clic para abrir{% else %}Clic para bloquear{% endif %} {{ lk.label }}">
+                  <span aria-hidden="true">{% if lk.locked %}🔒{% else %}🔓{% endif %}</span> {{ lk.label }}
+                </button>
+              </form>
+            {% else %}
+              <span class="lock-chip {% if lk.locked %}is-locked{% endif %}">
+                <span aria-hidden="true">{% if lk.locked %}🔒{% else %}🔓{% endif %}</span> {{ lk.label }}
+              </span>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        <div class="participant-actions">
+          <a class="link" href="{% url 'inicio:predictions_dashboard' row.p.id %}">Predicciones</a>
+          {% if is_app_admin %}
+            <form method="post" class="topbar-inline-form" onsubmit="return confirm('¿Eliminar a {{ row.p.name }}?')">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="participant_id" value="{{ row.p.id }}">
+              <button class="link-btn danger" type="submit">Eliminar</button>
+            </form>
           {% endif %}
-        </span>
-        <a class="link" href="{% url 'inicio:predictions_dashboard' p.id %}">Predicciones</a>
-        {% if is_app_admin %}
-          <form method="post" style="display:inline">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="toggle_lock">
-            <input type="hidden" name="participant_id" value="{{ p.id }}">
-            <button class="link-btn" type="submit">
-              {% if p.predictions_locked %}Desbloquear{% else %}Bloquear{% endif %}
-            </button>
-          </form>
-          <form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar a {{ p.name }}?')">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="participant_id" value="{{ p.id }}">
-            <button class="link-btn danger" type="submit">Eliminar</button>
-          </form>
-        {% endif %}
+        </div>
       </li>
     {% empty %}
       <li class="muted">Sin participantes aún. Agrega al menos uno.</li>

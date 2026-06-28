@@ -8,6 +8,10 @@
     Cuando termines, elige también la <strong>posición final de cada equipo</strong> dentro de su grupo.
   </p>
 
+  {% if locked %}
+    <div class="msg msg-error">El administrador bloqueó la fase de grupos de este participante. Solo lectura.</div>
+  {% endif %}
+
   {% if grouped %}
   <form method="post">
     {% csrf_token %}
@@ -28,11 +32,11 @@
                   <td class="score-cell">
                     <input type="number" name="home_{{ item.match.id }}" min="0" max="20"
                            value="{% if item.pred %}{{ item.pred.home_score }}{% endif %}"
-                           {% if item.locked %}disabled{% endif %}>
+                           {% if item.locked or locked %}disabled{% endif %}>
                     <span>–</span>
                     <input type="number" name="away_{{ item.match.id }}" min="0" max="20"
                            value="{% if item.pred %}{{ item.pred.away_score }}{% endif %}"
-                           {% if item.locked %}disabled{% endif %}>
+                           {% if item.locked or locked %}disabled{% endif %}>
                   </td>
                   <td class="muted small">
                     {% if item.locked %}🔒 ya empezó{% else %}{{ item.match.kickoff_utc|date:"D d M H:i" }}{% endif %}
@@ -62,7 +66,7 @@
                       <td>{{ trow.stats.GD }}</td>
                       <td>{{ trow.stats.GF }}</td>
                       <td>
-                        <select name="pos_|{{ g }}|{{ trow.team }}" required>
+                        <select name="pos_|{{ g }}|{{ trow.team }}" required {% if locked %}disabled{% endif %}>
                           <option value="1" {% if trow.user_pos == 1 %}selected{% endif %}>1</option>
                           <option value="2" {% if trow.user_pos == 2 %}selected{% endif %}>2</option>
                           <option value="3" {% if trow.user_pos == 3 %}selected{% endif %}>3</option>
@@ -80,7 +84,7 @@
       {% endfor %}
 
       <div class="actions sticky-bottom">
-        <button class="btn primary" type="submit">Guardar todo</button>
+        {% if not locked %}<button class="btn primary" type="submit">Guardar todo</button>{% endif %}
         <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
       </div>
   </form>
