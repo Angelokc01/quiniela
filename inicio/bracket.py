@@ -199,17 +199,50 @@ def r32_pairings_for_display() -> List[Tuple[str, str]]:
     return pairs
 
 
+# ---------------------------------------------------------------
+# Dieciseisavos OFICIALES del Mundial 2026.
+# Orden de los partidos (cronologico). El ganador del partido i se enfrenta
+# al ganador del partido i+1 en octavos: (1 vs 2), (3 vs 4), (5 vs 6), ...
+# Es la base del bracket que se le muestra a TODOS los participantes mientras
+# la API todavia no entregue los partidos reales de eliminatoria.
+# ---------------------------------------------------------------
+OFFICIAL_R32 = [
+    ('Sudáfrica', 'Canadá'),
+    ('Brasil', 'Japón'),
+    ('Alemania', 'Paraguay'),
+    ('Países Bajos', 'Marruecos'),
+    ('Costa de Marfil', 'Noruega'),
+    ('Francia', 'Suecia'),
+    ('México', 'Ecuador'),
+    ('Inglaterra', 'República Democrática del Congo'),
+    ('Bélgica', 'Senegal'),
+    ('Estados Unidos', 'Bosnia y Herzegovina'),
+    ('España', 'Austria'),
+    ('Portugal', 'Croacia'),
+    ('Suiza', 'Argelia'),
+    ('Australia', 'Egipto'),
+    ('Argentina', 'Cabo Verde'),
+    ('Colombia', 'Ghana'),
+]
+
+
+def _official_r32_slots() -> Dict[str, str]:
+    slots = {}
+    for i, (home, away) in enumerate(OFFICIAL_R32, start=1):
+        slots[f'R32_{2 * i - 1}'] = home
+        slots[f'R32_{2 * i}'] = away
+    return slots
+
+
 def real_r32_slots() -> Dict[str, str]:
     """
-    Equipos REALES de los dieciseisavos, tomados de los Match de la API
-    (round = round_of_32). Es la base oficial del bracket que se usa para
-    TODOS los participantes.
+    Base oficial de los dieciseisavos (igual para TODOS los participantes).
 
-    Mapea el partido i (ordenado por match_number) a:
-        R32_(2i-1) = equipo local, R32_(2i) = equipo visitante.
-
-    Devuelve {} si todavía no hay partidos de dieciseisavos cargados (en ese
-    caso el bracket cae al cálculo provisional desde las posiciones de grupo).
+    Prioridad:
+      1. Partidos reales de la API (round = round_of_32), si ya estan cargados
+         con equipos. Se mapea el partido i (orden por match_number) a:
+             R32_(2i-1) = equipo local, R32_(2i) = equipo visitante.
+      2. Lista oficial fija OFFICIAL_R32 definida arriba.
     """
     matches = list(Match.objects.filter(round=ROUND_R32)
                    .order_by('match_number', 'kickoff_utc'))
@@ -219,7 +252,9 @@ def real_r32_slots() -> Dict[str, str]:
             slots[f'R32_{2 * i - 1}'] = m.home_team
         if m.away_team:
             slots[f'R32_{2 * i}'] = m.away_team
-    return slots
+    if slots:
+        return slots
+    return _official_r32_slots()
 
 
 def round_pairings(round_name: str) -> List[Tuple[str, str, str]]:
