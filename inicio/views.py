@@ -24,7 +24,7 @@ from .models import (
 )
 from .bracket import (
     actual_group_standings, predicted_group_standings,
-    bracket_from_standings, round_matches,
+    bracket_from_standings, round_matches, real_r32_slots,
 )
 from .scoring import (
     participant_points_breakdown, betting_group_leaderboard,
@@ -404,17 +404,17 @@ def predict_bracket(request, participant_id):
     participant = get_object_or_404(Participant, id=participant_id)
     admin_mode = is_app_admin(request)
 
-    if not group_stage_complete() and not admin_mode:
-        messages.info(request, 'El bracket de eliminación se habilita cuando termina la fase de grupos.')
-        return redirect('inicio:predictions_dashboard', participant_id=participant.id)
-
     if request.method == 'POST' and participant.predictions_locked and not admin_mode:
         messages.error(request, 'Las predicciones de este participante están bloqueadas por el administrador.')
         return redirect('inicio:predict_bracket', participant_id=participant.id)
 
-    # R32 se arma con las clasificaciones reales del torneo.
-    actual_standings = actual_group_standings()
-    suggested_bracket = bracket_from_standings(actual_standings)
+    # Los dieciseisavos salen de los partidos REALES de la API (round_of_32):
+    # esa es la base oficial e igual para todos. Si la API aún no tiene los
+    # cruces de eliminatoria, se usa un cálculo provisional desde las posiciones
+    # de grupo para no dejar la pantalla vacía.
+    suggested_bracket = real_r32_slots()
+    if not suggested_bracket:
+        suggested_bracket = bracket_from_standings(actual_group_standings())
 
     def next_slot_for_round(round_name, slot_top):
         try:
@@ -582,50 +582,78 @@ def predict_bracket(request, participant_id):
     saved_scores = {(k.slot_top, k.slot_bottom): k for k in
                     KnockoutScorePrediction.objects.filter(participant=participant)}
 
-    # Helper para construir filas por ronda
-    def build_round(round_name):
-        out = []
-        for st, sb in round_matches(round_name):
-            ks = saved_scores.get((st, sb))
-            next_slot = next_slot_for_round(round_name, st)
-            out.append({
-                'slot_top': st,
-                'slot_bottom': sb,
-                'team_top': saved_bracket.get(st, suggested_bracket.get(st, '')),
-                'team_bottom': saved_bracket.get(sb, suggested_bracket.get(sb, '')),
-                'home_score': ks.home_score if ks else '',
-                'away_score': ks.away_score if ks else '',
-                'winner': saved_bracket.get(next_slot, '') if next_slot else '',
-            })
-        return out
-
-    # En R32 los equipos ya vienen del bracket sugerido; el usuario sólo predice marcador.
-    # En R16 en adelante, el usuario puede ESCRIBIR qué equipo cree que va a estar
-    # en cada slot.
-    rounds_data = [
-        ('R32 — Dieciseisavos', ROUND_R32, build_round(ROUND_R32), True),
-        ('R16 — Octavos', ROUND_R16, build_round(ROUND_R16), False),
-        ('Cuartos', ROUND_QF, build_round(ROUND_QF), False),
-        ('Semifinales', ROUND_SF, build_round(ROUND_SF), False),
-        ('Tercer puesto', ROUND_3RD, build_round(ROUND_3RD), False),
-        ('Final', ROUND_FINAL, build_round(ROUND_FINAL), False),
+    # Definición de rondas: (round, etiqueta, prefijo de la siguiente ronda,
+    #                         etiqueta corta de la siguiente ronda)
+    round_defs = [
+        (ROUND_R32, 'Dieciseisavos de final', 'R16', 'Octavos'),
+        (ROUND_R16, 'Octavos de final', 'QF', 'Cuartos'),
+        (ROUND_QF, 'Cuartos de final', 'SF', 'Semifinales'),
+        (ROUND_SF, 'Semifinales', 'FINAL', 'la Final'),
+        (ROUND_3RD, 'Tercer y cuarto puesto', None, None),
+        (ROUND_FINAL, 'Final', None, None),
     ]
 
-    final_positions = []
-    for slot, label in [(SLOT_CHAMPION, 'Campeón'),
-                        (SLOT_RUNNER_UP, 'Subcampeón'),
-                        (SLOT_THIRD, '3er puesto'),
-                        (SLOT_FOURTH, '4to puesto')]:
-        final_positions.append({
-            'slot': slot, 'label': label,
-            'team': saved_bracket.get(slot, ''),
-            'editable': slot in (SLOT_CHAMPION, SLOT_RUNNER_UP),
+    def win_lose_slots(round_name, match_no, next_prefix):
+        """Devuelve (slot_ganador, slot_perdedor) destino para un partido."""
+        if round_name == ROUND_FINAL:
+            return SLOT_CHAMPION, SLOT_RUNNER_UP
+        if round_name == ROUND_3RD:
+            return SLOT_THIRD, SLOT_FOURTH
+        if round_name == ROUND_SF:
+            return f'FINAL_{match_no}', f'THIRD_{match_no}'
+        return f'{next_prefix}_{match_no}', ''
+
+    rounds = []
+    for round_name, label, next_prefix, next_label in round_defs:
+        is_r32 = round_name == ROUND_R32
+        matches = []
+        for match_no, (st, sb) in enumerate(round_matches(round_name), start=1):
+            ks = saved_scores.get((st, sb))
+            win_slot, lose_slot = win_lose_slots(round_name, match_no, next_prefix)
+            if is_r32:
+                # Base oficial de la API: no se sobreescribe con valores viejos.
+                team_top = suggested_bracket.get(st, '')
+                team_bottom = suggested_bracket.get(sb, '')
+            else:
+                # Rondas siguientes: el JS las recalcula desde los ganadores.
+                team_top = saved_bracket.get(st, '')
+                team_bottom = saved_bracket.get(sb, '')
+            matches.append({
+                'no': match_no,
+                'slot_top': st,
+                'slot_bottom': sb,
+                'team_top': team_top,
+                'team_bottom': team_bottom,
+                'home_score': ks.home_score if ks is not None else '',
+                'away_score': ks.away_score if ks is not None else '',
+                'winner': saved_bracket.get(win_slot, ''),
+                'win_slot': win_slot,
+                'lose_slot': lose_slot,
+            })
+        rounds.append({
+            'key': round_name,
+            'label': label,
+            'next_label': next_label,
+            'is_r32': is_r32,
+            'matches': matches,
         })
+
+    podium = [
+        {'slot': SLOT_CHAMPION, 'label': 'Campeón', 'rank': '1°',
+         'team': saved_bracket.get(SLOT_CHAMPION, '')},
+        {'slot': SLOT_RUNNER_UP, 'label': 'Subcampeón', 'rank': '2°',
+         'team': saved_bracket.get(SLOT_RUNNER_UP, '')},
+        {'slot': SLOT_THIRD, 'label': 'Tercer puesto', 'rank': '3°',
+         'team': saved_bracket.get(SLOT_THIRD, '')},
+        {'slot': SLOT_FOURTH, 'label': 'Cuarto puesto', 'rank': '4°',
+         'team': saved_bracket.get(SLOT_FOURTH, '')},
+    ]
 
     return render(request, 'inicio/predict_bracket.html', {
         'participant': participant,
-        'rounds_data': rounds_data,
-        'final_positions': final_positions,
+        'rounds': rounds,
+        'podium': podium,
+        'locked': participant.predictions_locked and not admin_mode,
     })
 
 

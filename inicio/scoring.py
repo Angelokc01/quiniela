@@ -9,24 +9,24 @@ FASE DE GRUPOS
   - 2 pt:  acertar la posición exacta de un equipo dentro de su grupo (4 por grupo).
 
 CLASIFICADOS POR RONDA
-  - Octavos (R16): 5 llave correcta, 5 incorrecta.
-  - Cuartos (QF):    8 llave correcta, 8 incorrecta.
-  - Semis (SF):      12 llave correcta, 12 incorrecta.
-  - Finalistas:      15 llave correcta, 15 incorrecta.
+  - Octavos: 5 
+  - Cuartos: 8 
+  - Semis: 12 
+  - Finalistas:15 
 
-MARCADOR EXACTO EN ELIMINATORIA (el orden top-bottom importa):
+MARCADOR EXACTO EN ELIMINATORIA (el orden top-bottom importa pero no importa que equiposn llegaron a ese bracket):
     - R32 (dieciseisavos): 4
     - R16 (octavos):       5
     - QF  (cuartos):       6
     - SF  (semis):         7
-    - 3rd place:           7
+    - 3rd place:           4
     - Final:               8
 
 POSICIÓN FINAL
-  - 50 campeón
-  - 30 subcampeón
-  - 15 tercer puesto
-  - 8  cuarto puesto
+  - 30 campeón
+  - 15 subcampeón
+  - 5 tercer puesto
+  - 2  cuarto puesto
 
 PREMIOS INDIVIDUALES
   - Bota Oro:     10
@@ -66,9 +66,9 @@ ROUND_CORRECT_SLOT_POINTS = {
 # Puntos por posición final (campeón, subcampeón, etc.)
 FINAL_POSITION_POINTS = {
     SLOT_CHAMPION:  30,
-    SLOT_RUNNER_UP: 20,
-    SLOT_THIRD:     10,
-    SLOT_FOURTH:    5,
+    SLOT_RUNNER_UP: 15,
+    SLOT_THIRD:     5,
+    SLOT_FOURTH:    2,
 }
 
 # Puntos por marcador exacto de un partido de eliminatoria (orden top-bottom)
@@ -77,7 +77,7 @@ KNOCKOUT_SCORE_POINTS = {
     ROUND_R16: 5,
     ROUND_QF:  6,
     ROUND_SF:  7,
-    ROUND_3RD: 7,
+    ROUND_3RD: 4,
     ROUND_FINAL: 8,
 }
 

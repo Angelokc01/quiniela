@@ -555,6 +555,121 @@ select { appearance: none; -webkit-appearance: none;
 .pts-badge.green { background: var(--good-soft); border: 1px solid rgba(52,211,153,0.4); color: #9af0cf; }
 
 /* ============================================================
+   Bracket eliminatorio
+   ============================================================ */
+.podium {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem;
+  margin: 1.5rem 0 2rem;
+}
+.podium-card {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: .25rem; padding: 1rem .75rem;
+  background: linear-gradient(180deg, var(--surface-2), var(--bg-2));
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.podium-card .podium-rank {
+  font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; color: var(--muted);
+}
+.podium-card .podium-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.podium-card .podium-team {
+  font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; margin-top: .15rem;
+  line-height: 1.15;
+}
+.podium-card.is-empty .podium-team { color: var(--muted); font-weight: 600; }
+.podium-card.podium-1 {
+  background: linear-gradient(180deg, rgba(255,210,74,0.16), rgba(255,210,74,0.03));
+  border-color: rgba(255,210,74,0.4);
+}
+.podium-card.podium-1:not(.is-empty) { box-shadow: 0 8px 26px rgba(255,210,74,0.12); }
+.podium-card.podium-1 .podium-rank, .podium-card.podium-1 .podium-team { color: var(--gold); }
+.podium-card.podium-2 .podium-rank { color: var(--silver); }
+.podium-card.podium-3 .podium-rank { color: var(--bronze); }
+
+.bracket-rounds { display: grid; gap: 1.75rem; }
+.bk-round { }
+.bk-round-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  padding-bottom: .6rem; margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.bk-round-head h2 {
+  margin: 0; font-size: 1.15rem; color: var(--accent);
+}
+.bk-round-count { color: var(--muted); font-size: .82rem; white-space: nowrap; }
+
+.bk-matches {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: .9rem;
+}
+
+.bk-match {
+  position: relative;
+  background: linear-gradient(180deg, var(--surface), var(--bg-2));
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: .65rem .7rem 1.4rem;
+}
+.bk-match-no {
+  position: absolute; top: .5rem; right: .65rem;
+  font-size: .68rem; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+.bk-team {
+  display: flex; align-items: center; gap: .5rem;
+  border-radius: 9px; padding: .15rem;
+}
+.bk-team + .bk-team { margin-top: .35rem; }
+.bk-pick {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: .55rem;
+  padding: .5rem .6rem; cursor: pointer;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 9px;
+  font: inherit; font-weight: 600; text-align: left;
+  transition: border-color .14s ease, background .14s ease, transform .1s ease;
+}
+.bk-pick:hover { border-color: var(--primary); }
+.bk-pick:active { transform: scale(.99); }
+.bk-pick:disabled { cursor: default; opacity: .85; }
+.bk-pick:focus-visible { outline: none; box-shadow: var(--ring); }
+.bk-check {
+  flex: 0 0 auto; width: 1.15rem; height: 1.15rem; border-radius: 999px;
+  border: 2px solid var(--border); display: grid; place-items: center;
+  transition: border-color .14s ease, background .14s ease;
+}
+.bk-check::after {
+  content: ""; width: .5rem; height: .5rem; border-radius: 999px;
+  background: transparent; transition: background .14s ease;
+}
+.bk-team-name {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bk-team.is-empty .bk-team-name { color: var(--muted); font-weight: 500; font-style: italic; }
+.bk-score {
+  flex: 0 0 auto; width: 3rem; text-align: center; margin-top: 0;
+}
+
+/* Equipo que pasa */
+.bk-team.is-winner .bk-pick {
+  border-color: var(--good); background: var(--good-soft); color: #eafff5;
+}
+.bk-team.is-winner .bk-check { border-color: var(--good); background: rgba(52,211,153,0.25); }
+.bk-team.is-winner .bk-check::after { background: var(--good); }
+
+.bk-feed {
+  position: absolute; left: .7rem; bottom: .5rem;
+  font-size: .68rem; color: var(--muted);
+  display: inline-flex; align-items: center; gap: .3rem;
+}
+.bk-feed::before { content: "↳"; color: var(--primary); font-weight: 700; }
+
+@media (max-width: 720px) {
+  .podium { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+  .bk-matches { grid-template-columns: 1fr; }
+  .bk-round-head h2 { font-size: 1.05rem; }
+}
+
+/* ============================================================
    Mobile
    ============================================================ */
 @media (max-width: 720px) {

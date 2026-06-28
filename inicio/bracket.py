@@ -199,6 +199,29 @@ def r32_pairings_for_display() -> List[Tuple[str, str]]:
     return pairs
 
 
+def real_r32_slots() -> Dict[str, str]:
+    """
+    Equipos REALES de los dieciseisavos, tomados de los Match de la API
+    (round = round_of_32). Es la base oficial del bracket que se usa para
+    TODOS los participantes.
+
+    Mapea el partido i (ordenado por match_number) a:
+        R32_(2i-1) = equipo local, R32_(2i) = equipo visitante.
+
+    Devuelve {} si todavía no hay partidos de dieciseisavos cargados (en ese
+    caso el bracket cae al cálculo provisional desde las posiciones de grupo).
+    """
+    matches = list(Match.objects.filter(round=ROUND_R32)
+                   .order_by('match_number', 'kickoff_utc'))
+    slots = {}
+    for i, m in enumerate(matches, start=1):
+        if m.home_team:
+            slots[f'R32_{2 * i - 1}'] = m.home_team
+        if m.away_team:
+            slots[f'R32_{2 * i}'] = m.away_team
+    return slots
+
+
 def round_pairings(round_name: str) -> List[Tuple[str, str, str]]:
     """
     Devuelve [(slot_top, slot_bottom, parent_slot_of_winner), ...] para una ronda.

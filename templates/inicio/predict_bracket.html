@@ -1,110 +1,199 @@
 {% extends "inicio/base.html" %}
 
+{% block title %}Bracket eliminatorio – {{ participant.name }}{% endblock %}
+
 {% block content %}
 <section class="card">
-  <h1>Bracket eliminatorio – {{ participant.name }}</h1>
+  <h1>Bracket eliminatorio</h1>
+  <p class="muted">{{ participant.name }}</p>
   <p class="muted">
-    Este bracket se habilita cuando termina la fase de grupos. En <strong>R32</strong>
-    los equipos ya salen con las clasificaciones reales del torneo: sólo pones el
-    marcador (si aciertas el marcador exacto en el mismo orden top–abajo, ganas
-    puntos aunque no coincidan los equipos).<br>
-    En <strong>todos los cruces eliminatorios</strong> puedes elegir además qué equipo
-    pasa de ronda para que el bracket se auto-actualice aunque el marcador termine en empate.
+    Toca el equipo que crees que <strong>pasa de ronda</strong> en cada llave: el
+    bracket se actualiza solo y va llevando a los ganadores hasta la final, el 3.er
+    y 4.º puesto. El marcador es opcional y da puntos extra por acertarlo exacto.
   </p>
 
-  <form method="post">
+  {% if locked %}
+    <div class="msg msg-error">Predicciones bloqueadas por el administrador. Solo lectura.</div>
+  {% endif %}
+
+  <form method="post" id="bracket-form" {% if locked %}data-locked="1"{% endif %}>
     {% csrf_token %}
 
-    {% for label, key, pairs, is_r32 in rounds_data %}
-      <fieldset class="group-block">
-        <legend>{{ label }}</legend>
-        <div class="responsive-table">
-          <table class="matches">
-            <thead><tr>
-              <th>Equipo (top)</th><th>Marc.</th><th>Pasa</th><th>Predicción final</th><th>Slot</th>
-            </tr></thead>
-            <tbody>
-              {% for p in pairs %}
-                <tr>
-                  <td>
-                    {% if is_r32 %}
-                      <strong>{{ p.team_top|default:"?" }}</strong>
-                      <input type="hidden" name="slot__{{ p.slot_top }}" value="{{ p.team_top }}">
-                    {% else %}
-                      <input type="text" name="slot__{{ p.slot_top }}"
-                             value="{{ p.team_top }}" placeholder="(escribe equipo)">
-                    {% endif %}
-                  </td>
-                  <td class="score-cell">
-                    <input type="number" name="kscore_h__{{ p.slot_top }}__{{ p.slot_bottom }}"
-                           min="0" max="20" value="{{ p.home_score }}">
-                    <span>–</span>
-                    <input type="number" name="kscore_a__{{ p.slot_top }}__{{ p.slot_bottom }}"
-                           min="0" max="20" value="{{ p.away_score }}">
-                  </td>
-                  <td>
-                    <select name="winner__{{ p.slot_top }}__{{ p.slot_bottom }}">
-                      <option value="">-- elegir --</option>
-                      {% if p.team_top %}
-                        <option value="{{ p.team_top }}" {% if p.winner == p.team_top %}selected{% endif %}>
-                          {{ p.team_top }}
-                        </option>
-                      {% endif %}
-                      {% if p.team_bottom %}
-                        <option value="{{ p.team_bottom }}" {% if p.winner == p.team_bottom %}selected{% endif %}>
-                          {{ p.team_bottom }}
-                        </option>
-                      {% endif %}
-                    </select>
-                  </td>
-                  <td>
-                    <div class="muted small">Predicción final</div>
-                    <div class="prediction-final-text">
-                      {{ p.winner|default:"Pendiente" }}
-                    </div>
-                    {% if is_r32 %}
-                      <input type="hidden" name="slot__{{ p.slot_bottom }}" value="{{ p.team_bottom }}">
-                    {% endif %}
-                  </td>
-                  <td class="muted small">{{ p.slot_top }} vs {{ p.slot_bottom }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <!-- Podio en vivo -->
+    <div class="podium">
+      {% for p in podium %}
+        <div class="podium-card podium-{{ forloop.counter }} {% if not p.team %}is-empty{% endif %}" data-slot="{{ p.slot }}">
+          <span class="podium-rank">{{ p.rank }}</span>
+          <span class="podium-label">{{ p.label }}</span>
+          <span class="podium-team bk-podium-team" data-slot="{{ p.slot }}">{{ p.team|default:"—" }}</span>
         </div>
-        <div class="actions">
-          <button class="btn primary" type="submit" name="save_phase" value="{{ key }}">Guardar {{ label }}</button>
-        </div>
-      </fieldset>
-    {% endfor %}
-
-    <fieldset class="group-block">
-      <legend>🏆 Predicción final</legend>
-      <div class="responsive-table">
-        <table class="matches">
-          {% for fp in final_positions %}
-            <tr>
-              <th>{{ fp.label }}</th>
-              <td>
-                {% if fp.editable %}
-                  <input type="text" name="slot__{{ fp.slot }}" value="{{ fp.team }}"
-                         placeholder="Equipo">
-                {% else %}
-                  <strong>{{ fp.team|default:"Pendiente" }}</strong>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </table>
-      </div>
-      <div class="actions">
-        <button class="btn primary" type="submit" name="save_phase" value="final">Guardar predicción final</button>
-      </div>
-    </fieldset>
-
-    <div class="actions">
-      <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
+      {% endfor %}
     </div>
+
+    <div class="bracket-rounds">
+      {% for r in rounds %}
+        <section class="bk-round">
+          <header class="bk-round-head">
+            <h2>{{ r.label }}</h2>
+            <span class="bk-round-count">{{ r.matches|length }} partido{{ r.matches|length|pluralize }}</span>
+          </header>
+
+          <div class="bk-matches">
+            {% for m in r.matches %}
+              <div class="bk-match"
+                   data-round="{{ r.key }}"
+                   data-top="{{ m.slot_top }}"
+                   data-bottom="{{ m.slot_bottom }}"
+                   data-win="{{ m.win_slot }}"
+                   data-lose="{{ m.lose_slot }}">
+                <span class="bk-match-no">#{{ m.no }}</span>
+
+                <div class="bk-team" data-slot="{{ m.slot_top }}">
+                  <button type="button" class="bk-pick" {% if locked %}disabled{% endif %} aria-label="Pasa el equipo de arriba">
+                    <span class="bk-check" aria-hidden="true"></span>
+                    <span class="bk-team-name" data-slot-name="{{ m.slot_top }}"
+                          data-placeholder="Por definir"
+                          {% if r.is_r32 %}data-fixed="{{ m.team_top }}"{% endif %}>{{ m.team_top|default:"Por definir" }}</span>
+                  </button>
+                  <input class="bk-score" type="number" min="0" max="20" inputmode="numeric"
+                         name="kscore_h__{{ m.slot_top }}__{{ m.slot_bottom }}"
+                         value="{{ m.home_score }}" {% if locked %}disabled{% endif %}
+                         aria-label="Goles equipo de arriba">
+                </div>
+
+                <div class="bk-team" data-slot="{{ m.slot_bottom }}">
+                  <button type="button" class="bk-pick" {% if locked %}disabled{% endif %} aria-label="Pasa el equipo de abajo">
+                    <span class="bk-check" aria-hidden="true"></span>
+                    <span class="bk-team-name" data-slot-name="{{ m.slot_bottom }}"
+                          data-placeholder="Por definir"
+                          {% if r.is_r32 %}data-fixed="{{ m.team_bottom }}"{% endif %}>{{ m.team_bottom|default:"Por definir" }}</span>
+                  </button>
+                  <input class="bk-score" type="number" min="0" max="20" inputmode="numeric"
+                         name="kscore_a__{{ m.slot_top }}__{{ m.slot_bottom }}"
+                         value="{{ m.away_score }}" {% if locked %}disabled{% endif %}
+                         aria-label="Goles equipo de abajo">
+                </div>
+
+                <input type="hidden" class="bk-winner" name="winner__{{ m.slot_top }}__{{ m.slot_bottom }}" value="{{ m.winner }}">
+                {% if r.is_r32 %}
+                  <input type="hidden" name="slot__{{ m.slot_top }}" value="{{ m.team_top }}">
+                  <input type="hidden" name="slot__{{ m.slot_bottom }}" value="{{ m.team_bottom }}">
+                {% endif %}
+
+                {% if r.next_label %}<span class="bk-feed">Pasa a {{ r.next_label }}</span>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+
+    {% if not locked %}
+      <div class="actions sticky-bottom">
+        <button class="btn primary" type="submit">Guardar bracket</button>
+        <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
+      </div>
+    {% else %}
+      <div class="actions">
+        <a class="btn ghost" href="{% url 'inicio:predictions_dashboard' participant.id %}">Volver</a>
+      </div>
+    {% endif %}
   </form>
 </section>
+
+<script>
+(function () {
+  var form = document.getElementById('bracket-form');
+  if (!form) return;
+  var matchEls = Array.prototype.slice.call(form.querySelectorAll('.bk-match'));
+  var slots = {};
+
+  function nameSpan(slot) {
+    return form.querySelector('.bk-team-name[data-slot-name="' + slot + '"]');
+  }
+
+  function setDisplay(slot, team) {
+    var s = nameSpan(slot);
+    if (!s) return;
+    s.textContent = team || s.getAttribute('data-placeholder') || 'Por definir';
+    var row = s.closest('.bk-team');
+    if (row) row.classList.toggle('is-empty', !team);
+  }
+
+  function recompute() {
+    slots = {};
+    // Equipos fijos de dieciseisavos (vienen de las posiciones reales de grupos)
+    form.querySelectorAll('.bk-team-name[data-fixed]').forEach(function (s) {
+      slots[s.getAttribute('data-slot-name')] = s.getAttribute('data-fixed') || '';
+    });
+
+    matchEls.forEach(function (el) {
+      var topSlot = el.dataset.top, botSlot = el.dataset.bottom;
+      var winSlot = el.dataset.win, loseSlot = el.dataset.lose;
+      var top = slots[topSlot] || '';
+      var bot = slots[botSlot] || '';
+
+      setDisplay(topSlot, top);
+      setDisplay(botSlot, bot);
+
+      var hid = el.querySelector('.bk-winner');
+      var sel = hid.value;
+      var winner = '';
+
+      if (sel && (sel === top || sel === bot)) {
+        winner = sel;
+      } else {
+        // Si no hay elección manual válida, deducir del marcador
+        var hs = el.querySelector('input[name^="kscore_h__"]');
+        var as = el.querySelector('input[name^="kscore_a__"]');
+        var hv = hs && hs.value !== '' ? parseInt(hs.value, 10) : null;
+        var av = as && as.value !== '' ? parseInt(as.value, 10) : null;
+        if (top && bot && hv !== null && av !== null && !isNaN(hv) && !isNaN(av) && hv !== av) {
+          winner = hv > av ? top : bot;
+        }
+      }
+      hid.value = winner;
+
+      el.querySelectorAll('.bk-team').forEach(function (t) {
+        var slot = t.getAttribute('data-slot');
+        var isWin = !!winner && (slot === topSlot || slot === botSlot) && slots[slot] === winner;
+        t.classList.toggle('is-winner', isWin);
+      });
+
+      if (winSlot) slots[winSlot] = winner;
+      if (loseSlot) slots[loseSlot] = winner ? (winner === top ? bot : top) : '';
+    });
+
+    // Podio
+    form.querySelectorAll('.bk-podium-team').forEach(function (p) {
+      var slot = p.getAttribute('data-slot');
+      var t = slots[slot] || '';
+      p.textContent = t || '—';
+      var card = p.closest('.podium-card');
+      if (card) card.classList.toggle('is-empty', !t);
+    });
+  }
+
+  if (form.dataset.locked !== '1') {
+    form.addEventListener('click', function (e) {
+      var btn = e.target.closest('.bk-pick');
+      if (!btn) return;
+      e.preventDefault();
+      var teamRow = btn.closest('.bk-team');
+      var slot = teamRow.getAttribute('data-slot');
+      var teamName = slots[slot] || '';
+      if (!teamName) return;
+      var hid = btn.closest('.bk-match').querySelector('.bk-winner');
+      hid.value = (hid.value === teamName) ? '' : teamName;
+      recompute();
+    });
+
+    form.addEventListener('input', function (e) {
+      if (e.target.classList.contains('bk-score')) recompute();
+    });
+  }
+
+  recompute();
+})();
+</script>
 {% endblock %}
