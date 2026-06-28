@@ -200,28 +200,31 @@ def r32_pairings_for_display() -> List[Tuple[str, str]]:
 
 
 # ---------------------------------------------------------------
-# Dieciseisavos OFICIALES del Mundial 2026.
-# Orden de los partidos (cronologico). El ganador del partido i se enfrenta
-# al ganador del partido i+1 en octavos: (1 vs 2), (3 vs 4), (5 vs 6), ...
+# Dieciseisavos OFICIALES del Mundial 2026 (cuadro oficial FIFA).
+# El orden ES la posicion en el bracket: el ganador del partido i se enfrenta
+# al del partido i+1 en octavos -> (1 vs 2), (3 vs 4), (5 vs 6), (7 vs 8) ...
+# Partidos 1-8 = mitad izquierda (un finalista); 9-16 = mitad derecha (el otro).
 # Es la base del bracket que se le muestra a TODOS los participantes mientras
 # la API todavia no entregue los partidos reales de eliminatoria.
 # ---------------------------------------------------------------
 OFFICIAL_R32 = [
-    ('Sudáfrica', 'Canadá'),
-    ('Brasil', 'Japón'),
+    # --- Mitad izquierda del cuadro ---
     ('Alemania', 'Paraguay'),
-    ('Países Bajos', 'Marruecos'),
-    ('Costa de Marfil', 'Noruega'),
     ('Francia', 'Suecia'),
+    ('Sudáfrica', 'Canadá'),
+    ('Países Bajos', 'Marruecos'),
+    ('Portugal', 'Croacia'),
+    ('España', 'Austria'),
+    ('Estados Unidos', 'Bosnia y Herzegovina'),
+    ('Bélgica', 'Senegal'),
+    # --- Mitad derecha del cuadro ---
+    ('Brasil', 'Japón'),
+    ('Costa de Marfil', 'Noruega'),
     ('México', 'Ecuador'),
     ('Inglaterra', 'República Democrática del Congo'),
-    ('Bélgica', 'Senegal'),
-    ('Estados Unidos', 'Bosnia y Herzegovina'),
-    ('España', 'Austria'),
-    ('Portugal', 'Croacia'),
-    ('Suiza', 'Argelia'),
-    ('Australia', 'Egipto'),
     ('Argentina', 'Cabo Verde'),
+    ('Australia', 'Egipto'),
+    ('Suiza', 'Argelia'),
     ('Colombia', 'Ghana'),
 ]
 
