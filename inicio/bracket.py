@@ -319,6 +319,27 @@ def _real_matches_by_round_teams():
     return idx, teams_by_round
 
 
+def winner_slot_for(round_name, slot_top):
+    """Slot donde aterriza el GANADOR de un cruce (para saber 'quién pasa')."""
+    try:
+        n = int(slot_top.split('_')[1])
+    except (IndexError, ValueError):
+        return None
+    if round_name == ROUND_R32:
+        return f'R16_{(n + 1) // 2}'
+    if round_name == ROUND_R16:
+        return f'QF_{(n + 1) // 2}'
+    if round_name == ROUND_QF:
+        return f'SF_{(n + 1) // 2}'
+    if round_name == ROUND_SF:
+        return f'FINAL_{(n + 1) // 2}'
+    if round_name == ROUND_3RD:
+        return SLOT_THIRD
+    if round_name == ROUND_FINAL:
+        return SLOT_CHAMPION
+    return None
+
+
 def _decisive_winner_es(m):
     if not m or not m.is_finished or m.home_score is None or m.away_score is None:
         return None

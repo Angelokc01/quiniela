@@ -25,10 +25,11 @@ from .models import (
 from .bracket import (
     actual_group_standings, predicted_group_standings,
     bracket_from_standings, round_matches, real_r32_slots,
+    actual_bracket_and_matches, winner_slot_for,
 )
 from .scoring import (
     participant_points_breakdown, betting_group_leaderboard,
-    group_stage_complete, _points_group_match,
+    group_stage_complete, _points_group_match, KNOCKOUT_SCORE_POINTS,
 )
 from .pdf_reports import build_participant_predictions_pdf
 from .wc_api import sync_matches_to_db
@@ -773,39 +774,86 @@ def _selected_betting_group(request, groups):
     return groups[0] if groups else None
 
 
+# Etiquetas de ronda para la pestaña de partidos
+ROUND_SHORT_BADGE = {
+    ROUND_R32: '16',
+    ROUND_R16: '8º',
+    ROUND_QF: '4º',
+    ROUND_SF: 'SF',
+    ROUND_3RD: '3º',
+    ROUND_FINAL: 'F',
+}
+ROUND_FULL_LABEL = {
+    ROUND_R32: 'Dieciseisavos',
+    ROUND_R16: 'Octavos',
+    ROUND_QF: 'Cuartos',
+    ROUND_SF: 'Semifinal',
+    ROUND_3RD: 'Tercer puesto',
+    ROUND_FINAL: 'Final',
+}
+
+
 def upcoming_matches(request):
-    """Lista de próximos partidos de fase de grupos y resultados recientes.
-    Cada partido enlaza a la lista de predicciones del grupo de apuestas elegido.
+    """Lista de próximos partidos (grupos + eliminatorias) y resultados recientes.
+    Cada partido enlaza a las predicciones del grupo de apuestas elegido.
     """
     ensure_group_matches_synced(request)
     groups = list(BettingGroup.objects.prefetch_related('participants').all())
     selected_group = _selected_betting_group(request, groups)
 
-    group_matches = Match.objects.filter(round=ROUND_GROUP)
+    all_matches = Match.objects.all()
     upcoming = list(
-        group_matches.exclude(status=Match.STATUS_COMPLETED)
+        all_matches.exclude(status=Match.STATUS_COMPLETED)
         .order_by('kickoff_utc', 'match_number')
     )
     recent = list(
-        group_matches.filter(status=Match.STATUS_COMPLETED)
-        .order_by('-kickoff_utc', '-match_number')[:12]
+        all_matches.filter(status=Match.STATUS_COMPLETED)
+        .order_by('-kickoff_utc', '-match_number')[:15]
     )
 
-    pred_counts = {}
+    group_counts = {}
+    ko_counts = {}
+    match_to_pair = {}
     n_participants = 0
     if selected_group:
         n_participants = selected_group.participants.count()
         match_ids = [m.id for m in upcoming] + [m.id for m in recent]
-        counts = (
+        gc = (
             GroupMatchPrediction.objects
             .filter(participant__betting_group=selected_group, match_id__in=match_ids)
-            .values('match_id')
-            .annotate(n=Count('match_id'))
+            .values('match_id').annotate(n=Count('match_id'))
         )
-        pred_counts = {row['match_id']: row['n'] for row in counts}
+        group_counts = {row['match_id']: row['n'] for row in gc}
+        # Eliminatorias: mapear cada partido real a su cruce del bracket
+        _bracket, slot_match = actual_bracket_and_matches()
+        match_to_pair = {m.id: pair for pair, m in slot_match.items()}
+        for k in KnockoutScorePrediction.objects.filter(
+                participant__betting_group=selected_group):
+            key = (k.slot_top, k.slot_bottom)
+            ko_counts[key] = ko_counts.get(key, 0) + 1
 
     def decorate(matches):
-        return [{'match': m, 'n_preds': pred_counts.get(m.id, 0)} for m in matches]
+        out = []
+        for m in matches:
+            is_group = m.round == ROUND_GROUP
+            if is_group:
+                badge = m.group_name or '–'
+                n = group_counts.get(m.id, 0)
+                can_count = True
+            else:
+                badge = ROUND_SHORT_BADGE.get(m.round, '')
+                pair = match_to_pair.get(m.id)
+                n = ko_counts.get(pair, 0) if pair else 0
+                can_count = pair is not None
+            out.append({
+                'match': m,
+                'n_preds': n,
+                'badge': badge,
+                'round_label': '' if is_group else ROUND_FULL_LABEL.get(m.round, ''),
+                'is_group': is_group,
+                'can_count': can_count,
+            })
+        return out
 
     return render(request, 'inicio/upcoming_matches.html', {
         'groups': groups,
@@ -817,14 +865,18 @@ def upcoming_matches(request):
 
 
 def match_predictions(request, match_id):
-    """Predicciones de todos los participantes de un grupo para un partido."""
+    """Predicciones de todos los participantes de un grupo para un partido
+    (de fase de grupos o de eliminatoria)."""
     match = get_object_or_404(Match, id=match_id)
     groups = list(BettingGroup.objects.prefetch_related('participants').all())
     selected_group = _selected_betting_group(request, groups)
 
+    is_group = match.round == ROUND_GROUP
     rows = []
     n_with_pred = 0
-    if selected_group:
+    match_kind = 'group' if is_group else 'knockout_tbd'
+
+    if is_group and selected_group:
         preds = {
             p.participant_id: p
             for p in GroupMatchPrediction.objects.filter(
@@ -840,12 +892,44 @@ def match_predictions(request, match_id):
                 if match.is_finished:
                     points = _points_group_match(pred, match)
                     outcome = 'exact' if points == 5 else ('result' if points == 2 else 'miss')
-            rows.append({
-                'participant': participant,
-                'pred': pred,
-                'points': points,
-                'outcome': outcome,
-            })
+            rows.append({'participant': participant, 'pred': pred,
+                         'points': points, 'outcome': outcome})
+
+    elif not is_group:
+        # Ubicar el partido real en su cruce del bracket (por equipos)
+        _bracket, slot_match = actual_bracket_and_matches()
+        pair = next((pr for pr, m in slot_match.items() if m.id == match.id), None)
+        if pair is not None and selected_group:
+            match_kind = 'knockout'
+            slot_top, slot_bottom = pair
+            winner_slot = winner_slot_for(match.round, slot_top)
+            scores = {
+                k.participant_id: k
+                for k in KnockoutScorePrediction.objects.filter(
+                    slot_top=slot_top, slot_bottom=slot_bottom,
+                    participant__betting_group=selected_group)
+            }
+            advancers = {}
+            if winner_slot:
+                advancers = {
+                    b.participant_id: b.team
+                    for b in BracketPrediction.objects.filter(
+                        slot=winner_slot, participant__betting_group=selected_group)
+                }
+            for participant in selected_group.participants.all():
+                ksp = scores.get(participant.id)
+                adv = advancers.get(participant.id, '')
+                points = None
+                outcome = None
+                if ksp is not None or adv:
+                    n_with_pred += 1
+                if ksp is not None and match.is_finished:
+                    exact = (ksp.home_score == match.home_score and
+                             ksp.away_score == match.away_score)
+                    points = KNOCKOUT_SCORE_POINTS.get(match.round, 0) if exact else 0
+                    outcome = 'exact' if exact else 'miss'
+                rows.append({'participant': participant, 'pred_score': ksp,
+                             'advancer': adv, 'points': points, 'outcome': outcome})
 
     return render(request, 'inicio/match_predictions.html', {
         'match': match,
@@ -853,7 +937,8 @@ def match_predictions(request, match_id):
         'selected_group': selected_group,
         'rows': rows,
         'n_with_pred': n_with_pred,
-        'is_group_match': match.round == ROUND_GROUP,
+        'is_group_match': is_group,
+        'match_kind': match_kind,
     })
 
 

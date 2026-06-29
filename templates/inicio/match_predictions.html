@@ -8,7 +8,11 @@
 
   <div class="match-head">
     <div class="match-head-meta">
-      {% if match.group_name %}<span class="fixture-group">{{ match.group_name }}</span>{% endif %}
+      {% if is_group_match %}
+        {% if match.group_name %}<span class="fixture-group">{{ match.group_name }}</span>{% endif %}
+      {% else %}
+        <span class="status-badge ko">{{ match.get_round_display }}</span>
+      {% endif %}
       {% if match.status == 'live' %}
         <span class="status-badge live">● En vivo</span>
       {% elif match.is_finished %}
@@ -19,13 +23,13 @@
     </div>
 
     <div class="match-score">
-      <span class="match-team">{{ match.home_team }}</span>
+      <span class="match-team">{{ match.home_team|default:"Por definir" }}</span>
       {% if match.is_finished or match.status == 'live' %}
         <span class="match-result">{{ match.home_score|default:"0" }} <span class="muted">-</span> {{ match.away_score|default:"0" }}</span>
       {% else %}
         <span class="match-result muted">vs</span>
       {% endif %}
-      <span class="match-team">{{ match.away_team }}</span>
+      <span class="match-team">{{ match.away_team|default:"Por definir" }}</span>
     </div>
     {% if match.stadium %}<p class="muted small" style="text-align:center;margin:.25rem 0 0;">{{ match.stadium }}</p>{% endif %}
   </div>
@@ -42,10 +46,61 @@
     </form>
   {% endif %}
 
-  {% if not is_group_match %}
-    <div class="msg msg-info">Este es un partido de eliminatoria; las predicciones por participante se hacen en el bracket.</div>
-  {% elif not selected_group %}
+  {% if not selected_group %}
     <p class="muted">Crea un grupo de apuestas para ver predicciones.</p>
+
+  {% elif match_kind == 'knockout_tbd' %}
+    <div class="msg msg-info">
+      Los equipos de este cruce todavía no están definidos. Cuando se conozcan,
+      aquí verás el marcador y a quién hizo pasar cada participante. Las
+      predicciones de eliminatoria se hacen en el <a href="{% url 'inicio:upcoming_matches' %}">bracket</a>.
+    </div>
+
+  {% elif match_kind == 'knockout' %}
+    <p class="muted">
+      {{ n_with_pred }} de {{ rows|length }} participante{{ rows|length|pluralize }} de
+      <strong>{{ selected_group.name }}</strong> ya predijeron este cruce.
+    </p>
+    <div class="responsive-table">
+      <table class="matches predictions-table">
+        <thead>
+          <tr>
+            <th>Participante</th>
+            <th style="text-align:center;">Marcador</th>
+            <th>Pasa</th>
+            {% if match.is_finished %}<th style="text-align:right;">Puntos</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr class="{% if r.outcome %}outcome-{{ r.outcome }}{% endif %}">
+              <td>{{ r.participant.name }}</td>
+              <td style="text-align:center;">
+                {% if r.pred_score %}
+                  <span class="pred-score">{{ r.pred_score.home_score }} <span class="muted">-</span> {{ r.pred_score.away_score }}</span>
+                {% else %}
+                  <span class="muted small">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if r.advancer %}{{ r.advancer }}{% else %}<span class="muted small">sin elegir</span>{% endif %}
+              </td>
+              {% if match.is_finished %}
+                <td style="text-align:right;">
+                  {% if r.outcome == 'exact' %}<span class="pts-badge gold">+{{ r.points }} exacto</span>
+                  {% elif r.pred_score %}<span class="muted">0</span>
+                  {% else %}<span class="muted">—</span>{% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="muted">Este grupo no tiene participantes.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small">El marcador da puntos solo si aciertas el resultado exacto (el orden importa). “Pasa” es el equipo que el participante hizo avanzar en su bracket.</p>
+
   {% else %}
     <p class="muted">
       {{ n_with_pred }} de {{ rows|length }} participante{{ rows|length|pluralize }} de

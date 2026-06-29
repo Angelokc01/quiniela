@@ -525,7 +525,14 @@ select { appearance: none; -webkit-appearance: none;
 .status-badge.live { background: var(--danger-soft); border-color: rgba(255,93,108,0.4); color: #ffb3ba; }
 .status-badge.live { animation: livePulse 1.6s ease-in-out infinite; }
 .status-badge.done { background: var(--good-soft); border-color: rgba(52,211,153,0.35); color: #9af0cf; }
+.status-badge.ko { background: rgba(79,140,255,0.14); border-color: rgba(79,140,255,0.4); color: var(--primary-2); }
 @keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+
+/* Badge cuadrado de eliminatoria (azul, vs. el dorado de grupos) */
+.fixture-group.ko {
+  background: rgba(79,140,255,0.12); border-color: rgba(79,140,255,0.3);
+  color: var(--primary-2); font-size: .82rem;
+}
 
 /* ============================================================
    Match head + predictions table
