@@ -334,7 +334,13 @@ table.matches tr.locked { opacity: 0.55; }
    ============================================================ */
 table.leaderboard td:last-child { text-align: right; }
 table.leaderboard td:first-child { font-variant-numeric: tabular-nums; }
-table.leaderboard tbody tr td:nth-last-child(2) { font-weight: 800; color: var(--text); }
+/* Columna Total destacada (ahora al principio, tras el nombre) */
+table.leaderboard .total-col { text-align: center; font-variant-numeric: tabular-nums; }
+table.leaderboard thead .total-col { color: var(--accent); }
+table.leaderboard tbody .total-col strong {
+  font-family: var(--font-display); font-size: 1.05rem; font-weight: 800; color: #fff;
+}
+table.leaderboard .name-col { font-weight: 600; }
 table.leaderboard tbody tr:nth-child(1) td:first-child strong { color: var(--gold); }
 table.leaderboard tbody tr:nth-child(2) td:first-child strong { color: var(--silver); }
 table.leaderboard tbody tr:nth-child(3) td:first-child strong { color: var(--bronze); }
@@ -342,6 +348,13 @@ table.leaderboard tbody tr:nth-child(1),
 table.leaderboard tbody tr:nth-child(2),
 table.leaderboard tbody tr:nth-child(3) { background: rgba(255, 255, 255, 0.02); }
 table.leaderboard tbody tr:nth-child(1) { background: rgba(255, 210, 74, 0.05); }
+
+/* En celular mostramos solo lo esencial; el desglose está en "detalle". */
+@media (max-width: 720px) {
+  table.leaderboard .breakdown-col { display: none; }
+  table.leaderboard th, table.leaderboard td { padding: .7rem .55rem; }
+  table.leaderboard .total-col { font-size: 1rem; }
+}
 
 /* ============================================================
    Lists
@@ -383,6 +396,7 @@ select { appearance: none; -webkit-appearance: none;
    Group blocks (fieldset)
    ============================================================ */
 .group-block {
+  min-width: 0;  /* los <fieldset> traen min-inline-size:min-content y desbordan en móvil */
   border: 1px solid var(--border); border-radius: var(--radius);
   padding: 1.25rem 1.4rem; margin-bottom: 1.5rem;
   background: linear-gradient(180deg, var(--surface), var(--bg-2));
@@ -792,6 +806,9 @@ button.lock-chip:hover { border-color: var(--primary); color: var(--text); }
   .match-score { gap: .5rem; }
   .match-team { font-size: 1rem; }
   .match-result { font-size: 1.5rem; padding: .15rem .6rem; }
+
+  .group-block { padding: 1rem .85rem; }
+  .group-block h4 { margin: 1rem 0 .5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

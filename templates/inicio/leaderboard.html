@@ -9,24 +9,24 @@
     <table class="matches leaderboard">
       <thead>
         <tr>
-          <th>#</th><th>Participante</th>
-          <th>Grupos</th><th>Pos.</th><th>Bracket</th>
-          <th>Final</th><th>Marc. KO</th><th>Premios</th>
-          <th>Total</th><th></th>
+          <th>#</th><th>Participante</th><th class="total-col">Total</th>
+          <th class="breakdown-col">Grupos</th><th class="breakdown-col">Posiciones grupos</th><th class="breakdown-col">Avanza</th>
+          <th class="breakdown-col">1,2,3,4.º puesto</th><th class="breakdown-col">Marcador llaves</th><th class="breakdown-col">Premios</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% for r in rows %}
           <tr>
             <td><strong>{{ forloop.counter }}</strong></td>
-            <td>{{ r.participant.name }}</td>
-            <td>{{ r.breakdown.group_match_pts }}</td>
-            <td>{{ r.breakdown.standings_pts }}</td>
-            <td>{{ r.breakdown.bracket_pts }}</td>
-            <td>{{ r.breakdown.final_pos_pts }}</td>
-            <td>{{ r.breakdown.knockout_score_pts }}</td>
-            <td>{{ r.breakdown.award_pts }}</td>
-            <td><strong>{{ r.total }}</strong></td>
+            <td class="name-col">{{ r.participant.name }}</td>
+            <td class="total-col"><strong>{{ r.total }}</strong></td>
+            <td class="breakdown-col">{{ r.breakdown.group_match_pts }}</td>
+            <td class="breakdown-col">{{ r.breakdown.standings_pts }}</td>
+            <td class="breakdown-col">{{ r.breakdown.bracket_pts }}</td>
+            <td class="breakdown-col">{{ r.breakdown.final_pos_pts }}</td>
+            <td class="breakdown-col">{{ r.breakdown.knockout_score_pts }}</td>
+            <td class="breakdown-col">{{ r.breakdown.award_pts }}</td>
             <td><a class="link" href="{% url 'inicio:participant_detail' bg.id r.participant.id %}">detalle</a></td>
           </tr>
         {% empty %}
