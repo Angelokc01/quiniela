@@ -30,6 +30,7 @@ from .bracket import (
 from .scoring import (
     participant_points_breakdown, betting_group_leaderboard,
     group_stage_complete, _points_group_match, KNOCKOUT_SCORE_POINTS,
+    ROUND_CORRECT_SLOT_POINTS, FINAL_POSITION_POINTS,
 )
 from .pdf_reports import build_participant_predictions_pdf
 from .wc_api import sync_matches_to_db
@@ -792,6 +793,18 @@ ROUND_FULL_LABEL = {
     ROUND_FINAL: 'Final',
 }
 
+# Puntos por acertar quién AVANZA en cada cruce (a dónde llega el ganador):
+#   R32->octavos=5, R16->cuartos=8, QF->semis=12, SF->finalista=15,
+#   3er puesto=5, final->campeón=30. Derivado de las constantes de scoring.
+ADVANCE_POINTS = {
+    ROUND_R32: ROUND_CORRECT_SLOT_POINTS[ROUND_R16][0],
+    ROUND_R16: ROUND_CORRECT_SLOT_POINTS[ROUND_QF][0],
+    ROUND_QF: ROUND_CORRECT_SLOT_POINTS[ROUND_SF][0],
+    ROUND_SF: ROUND_CORRECT_SLOT_POINTS[ROUND_FINAL][0],
+    ROUND_3RD: FINAL_POSITION_POINTS[SLOT_THIRD],
+    ROUND_FINAL: FINAL_POSITION_POINTS[SLOT_CHAMPION],
+}
+
 
 def upcoming_matches(request):
     """Lista de próximos partidos (grupos + eliminatorias) y resultados recientes.
@@ -897,12 +910,15 @@ def match_predictions(request, match_id):
 
     elif not is_group:
         # Ubicar el partido real en su cruce del bracket (por equipos)
-        _bracket, slot_match = actual_bracket_and_matches()
+        bracket, slot_match = actual_bracket_and_matches()
         pair = next((pr for pr, m in slot_match.items() if m.id == match.id), None)
         if pair is not None and selected_group:
             match_kind = 'knockout'
             slot_top, slot_bottom = pair
             winner_slot = winner_slot_for(match.round, slot_top)
+            advance_pts = ADVANCE_POINTS.get(match.round, 0)
+            # Equipo que REALMENTE avanzó de este cruce (si ya terminó)
+            actual_advancer = bracket.get(winner_slot, '') if winner_slot and match.is_finished else ''
             scores = {
                 k.participant_id: k
                 for k in KnockoutScorePrediction.objects.filter(
@@ -919,17 +935,26 @@ def match_predictions(request, match_id):
             for participant in selected_group.participants.all():
                 ksp = scores.get(participant.id)
                 adv = advancers.get(participant.id, '')
-                points = None
-                outcome = None
                 if ksp is not None or adv:
                     n_with_pred += 1
-                if ksp is not None and match.is_finished:
-                    exact = (ksp.home_score == match.home_score and
-                             ksp.away_score == match.away_score)
-                    points = KNOCKOUT_SCORE_POINTS.get(match.round, 0) if exact else 0
-                    outcome = 'exact' if exact else 'miss'
-                rows.append({'participant': participant, 'pred_score': ksp,
-                             'advancer': adv, 'points': points, 'outcome': outcome})
+                score_exact = False
+                advance_correct = False
+                if match.is_finished:
+                    if ksp is not None:
+                        score_exact = (ksp.home_score == match.home_score and
+                                       ksp.away_score == match.away_score)
+                    if adv and actual_advancer:
+                        advance_correct = (adv == actual_advancer)
+                rows.append({
+                    'participant': participant,
+                    'pred_score': ksp,
+                    'advancer': adv,
+                    'score_exact': score_exact,
+                    'score_points': KNOCKOUT_SCORE_POINTS.get(match.round, 0) if score_exact else 0,
+                    'advance_correct': advance_correct,
+                    'advance_points': advance_pts if advance_correct else 0,
+                    'hit': score_exact or advance_correct,
+                })
 
     return render(request, 'inicio/match_predictions.html', {
         'match': match,
@@ -939,6 +964,7 @@ def match_predictions(request, match_id):
         'n_with_pred': n_with_pred,
         'is_group_match': is_group,
         'match_kind': match_kind,
+        'advance_points': ADVANCE_POINTS.get(match.round, 0) if not is_group else 0,
     })
 
 

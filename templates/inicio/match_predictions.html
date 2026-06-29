@@ -68,38 +68,35 @@
             <th>Participante</th>
             <th style="text-align:center;">Marcador</th>
             <th>Pasa</th>
-            {% if match.is_finished %}<th style="text-align:right;">Puntos</th>{% endif %}
           </tr>
         </thead>
         <tbody>
           {% for r in rows %}
-            <tr class="{% if r.outcome %}outcome-{{ r.outcome }}{% endif %}">
+            <tr class="{% if r.score_exact %}outcome-exact{% elif r.advance_correct %}outcome-result{% endif %}">
               <td>{{ r.participant.name }}</td>
               <td style="text-align:center;">
                 {% if r.pred_score %}
-                  <span class="pred-score">{{ r.pred_score.home_score }} <span class="muted">-</span> {{ r.pred_score.away_score }}</span>
+                  <span class="pred-score">{{ r.pred_score.home_score }}<span class="muted">-</span>{{ r.pred_score.away_score }}</span>
+                  {% if r.score_exact %}<span class="pts-badge gold">+{{ r.score_points }}</span>{% endif %}
                 {% else %}
                   <span class="muted small">—</span>
                 {% endif %}
               </td>
               <td>
-                {% if r.advancer %}{{ r.advancer }}{% else %}<span class="muted small">sin elegir</span>{% endif %}
+                {% if r.advancer %}{{ r.advancer }}{% if r.advance_correct %} <span class="pts-badge green">✓ +{{ r.advance_points }}</span>{% endif %}{% else %}<span class="muted small">sin elegir</span>{% endif %}
               </td>
-              {% if match.is_finished %}
-                <td style="text-align:right;">
-                  {% if r.outcome == 'exact' %}<span class="pts-badge gold">+{{ r.points }} exacto</span>
-                  {% elif r.pred_score %}<span class="muted">0</span>
-                  {% else %}<span class="muted">—</span>{% endif %}
-                </td>
-              {% endif %}
             </tr>
           {% empty %}
-            <tr><td colspan="4" class="muted">Este grupo no tiene participantes.</td></tr>
+            <tr><td colspan="3" class="muted">Este grupo no tiene participantes.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <p class="muted small">El marcador da puntos solo si aciertas el resultado exacto (el orden importa). “Pasa” es el equipo que el participante hizo avanzar en su bracket.</p>
+    <p class="muted small">
+      <strong>Marcador:</strong> da puntos solo si aciertas el resultado exacto (el orden importa).
+      <strong>Pasa:</strong> el equipo que el participante hizo avanzar en su bracket; acertar quién
+      avanza de este cruce vale <strong>{{ advance_points }} puntos</strong>.
+    </p>
 
   {% else %}
     <p class="muted">

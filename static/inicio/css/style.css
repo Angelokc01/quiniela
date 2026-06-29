@@ -159,6 +159,7 @@ a:hover { color: var(--primary); text-decoration: none; }
   margin-bottom: 0.6rem; font-size: .92rem; font-weight: 500;
   border: 1px solid transparent; box-shadow: var(--shadow-sm);
   animation: slideDown .35s cubic-bezier(.2, .8, .2, 1);
+  overflow-wrap: anywhere; min-width: 0;
 }
 .msg::before { font-size: 1.05rem; }
 .msg-success { background: var(--good-soft); border-color: rgba(52,211,153,0.4); color: #b9f5dd; }
@@ -574,6 +575,8 @@ select { appearance: none; -webkit-appearance: none;
 }
 .pts-badge.gold { background: rgba(255,210,74,0.16); border: 1px solid rgba(255,210,74,0.4); color: var(--gold); }
 .pts-badge.green { background: var(--good-soft); border: 1px solid rgba(52,211,153,0.4); color: #9af0cf; }
+/* Cuando hay dos badges de puntos (marcador + pasa) en la misma celda */
+.predictions-table td .pts-badge { margin: .1rem 0 .1rem .25rem; }
 
 /* ============================================================
    Bracket eliminatorio
@@ -609,7 +612,7 @@ select { appearance: none; -webkit-appearance: none;
 .podium-card.podium-3 .podium-rank { color: var(--bronze); }
 
 .bracket-rounds { display: grid; gap: 1.75rem; }
-.bk-round { }
+.bk-round { min-width: 0; }
 .bk-round-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
   padding-bottom: .6rem; margin-bottom: 1rem;
@@ -625,7 +628,7 @@ select { appearance: none; -webkit-appearance: none;
 }
 
 .bk-match {
-  position: relative;
+  position: relative; min-width: 0;
   background: linear-gradient(180deg, var(--surface), var(--bg-2));
   border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: .65rem .7rem 1.4rem;
@@ -636,7 +639,7 @@ select { appearance: none; -webkit-appearance: none;
 }
 
 .bk-team {
-  display: flex; align-items: center; gap: .5rem;
+  display: flex; align-items: center; gap: .5rem; min-width: 0;
   border-radius: 9px; padding: .15rem;
 }
 .bk-team + .bk-team { margin-top: .35rem; }
