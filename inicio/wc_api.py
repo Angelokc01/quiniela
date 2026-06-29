@@ -15,7 +15,32 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from .models import Match
+from .models import (
+    Match,
+    ROUND_GROUP, ROUND_R32, ROUND_R16, ROUND_QF, ROUND_SF, ROUND_3RD, ROUND_FINAL,
+)
+
+
+# La API usa códigos cortos para 'round' (group, R32, R16, QF, SF, 3rd, final).
+# Internamente el modelo usa otros valores; aquí los mapeamos para que el sync
+# guarde el valor correcto y todo el resto del código (bracket, scoring) lo
+# reconozca.
+API_ROUND_MAP = {
+    'group': ROUND_GROUP,
+    'R32': ROUND_R32,
+    'R16': ROUND_R16,
+    'QF': ROUND_QF,
+    'SF': ROUND_SF,
+    '3rd': ROUND_3RD,
+    'final': ROUND_FINAL,
+}
+
+
+def normalize_round(api_round):
+    """Convierte el 'round' de la API al valor interno del modelo."""
+    if not api_round:
+        return ROUND_GROUP
+    return API_ROUND_MAP.get(api_round, API_ROUND_MAP.get(str(api_round).strip(), api_round))
 
 
 def _headers():
@@ -59,7 +84,7 @@ def sync_matches_to_db():
 
         defaults = {
             'match_number': raw.get('match_number') or 0,
-            'round': raw.get('round') or 'group',
+            'round': normalize_round(raw.get('round')),
             'group_name': raw.get('group_name') or '',
             'home_team': raw.get('home_team') or '',
             'away_team': raw.get('away_team') or '',

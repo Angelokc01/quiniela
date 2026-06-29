@@ -237,15 +237,11 @@ def _official_r32_slots() -> Dict[str, str]:
     return slots
 
 
-def real_r32_slots() -> Dict[str, str]:
+def api_r32_slots() -> Dict[str, str]:
     """
-    Base oficial de los dieciseisavos (igual para TODOS los participantes).
-
-    Prioridad:
-      1. Partidos reales de la API (round = round_of_32), si ya estan cargados
-         con equipos. Se mapea el partido i (orden por match_number) a:
-             R32_(2i-1) = equipo local, R32_(2i) = equipo visitante.
-      2. Lista oficial fija OFFICIAL_R32 definida arriba.
+    Dieciseisavos tal como vienen de la API (Match round_of_32), mapeados por
+    orden de match_number: partido i -> R32_(2i-1)=local, R32_(2i)=visitante.
+    Devuelve {} si todavía no hay partidos de R32 sincronizados.
     """
     matches = list(Match.objects.filter(round=ROUND_R32)
                    .order_by('match_number', 'kickoff_utc'))
@@ -255,8 +251,19 @@ def real_r32_slots() -> Dict[str, str]:
             slots[f'R32_{2 * i - 1}'] = m.home_team
         if m.away_team:
             slots[f'R32_{2 * i}'] = m.away_team
-    if slots:
-        return slots
+    return slots
+
+
+def real_r32_slots() -> Dict[str, str]:
+    """
+    Base de los dieciseisavos para el bracket (igual para TODOS los participantes).
+
+    Usa la lista oficial fija OFFICIAL_R32, cuyo ORDEN está verificado contra el
+    cuadro oficial de la FIFA. La API se sincroniza para traer los RESULTADOS de
+    las eliminatorias (scoring), pero su orden por match_number NO se usa para
+    colocar los equipos en los slots, porque no necesariamente coincide con el
+    árbol del bracket (la API ordena por fecha, no por posición de la llave).
+    """
     return _official_r32_slots()
 
 
