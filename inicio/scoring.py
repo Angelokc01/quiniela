@@ -50,7 +50,7 @@ from .models import (
 )
 from .bracket import (
     actual_group_standings, bracket_from_standings, best_thirds,
-    R32_PAIRINGS, round_matches,
+    R32_PAIRINGS, round_matches, actual_bracket_and_matches,
 )
 
 
@@ -116,73 +116,16 @@ def build_actual_bracket() -> Dict[str, str]:
     Devuelve el dict slot -> equipo REAL para todos los slots (R32, R16, QF, SF,
     THIRD, FINAL, CHAMPION/RUNNER_UP/THIRD_PLACE/FOURTH_PLACE), basado en
     resultados reales de la API ya cargados en `Match`.
-    
+
+    Los equipos se colocan según el cuadro OFICIAL (OFFICIAL_R32) emparejando los
+    partidos reales por equipos —no por match_number—, porque la API ordena los
+    partidos por fecha, no por posición de la llave.
+
     IMPORTANTE: Solo devuelve equipos si la fase de grupos ya terminó completa.
-    Si todavía faltan partidos de grupos, devuelve un dict vacío para evitar
-    dar puntos sobre una llave parcial.
     """
     if not group_stage_complete():
         return {}
-    
-    standings = actual_group_standings()
-    bracket = bracket_from_standings(standings)  # R32_1..R32_32
-
-    # R16: ganador de cada partido R32 va a R16_i (i=1..16) en orden del partido.
-    # En FIFA, el partido R32_1 vs R32_2 produce el equipo de R16_1, etc.
-    # En nuestro modelo, los matches R16 los ordenamos por match_number en la API
-    # — y asumimos esa misma asignación.
-    def fill_round(round_name, prev_pairs, target_slot_fn):
-        for idx, (slot_top, slot_bottom) in enumerate(prev_pairs, start=1):
-            m = _actual_team_for_round_slot(round_name, idx)
-            if not m or not m.is_finished:
-                continue
-            winner = m.winner
-            if winner == 'DRAW':
-                # ronda de KO, no debería haber empate como ganador final
-                continue
-            bracket[target_slot_fn(idx)] = winner
-
-    # R16: 16 partidos, parejas (R32_1,R32_2)..(R32_31,R32_32) → R16_1..R16_16
-    r32_pairs = [(f'R32_{2*i-1}', f'R32_{2*i}') for i in range(1, 17)]
-    fill_round(ROUND_R16, r32_pairs, lambda i: f'R16_{i}')
-
-    # QF: 8 partidos R16 → QF_1..QF_8
-    r16_pairs = [(f'R16_{2*i-1}', f'R16_{2*i}') for i in range(1, 9)]
-    fill_round(ROUND_QF, r16_pairs, lambda i: f'QF_{i}')
-
-    # SF: 4 partidos QF → SF_1..SF_4
-    qf_pairs = [(f'QF_{2*i-1}', f'QF_{2*i}') for i in range(1, 5)]
-    fill_round(ROUND_SF, qf_pairs, lambda i: f'SF_{i}')
-
-    # Final: 2 partidos SF → FINAL_1, FINAL_2
-    sf_pairs = [('SF_1', 'SF_2'), ('SF_3', 'SF_4')]
-    fill_round(ROUND_FINAL, sf_pairs, lambda i: f'FINAL_{i}')
-
-    # 3er puesto: los PERDEDORES de las semifinales
-    for idx, (st, sb) in enumerate(sf_pairs, start=1):
-        m = _actual_team_for_round_slot(ROUND_SF, idx)
-        if not m or not m.is_finished:
-            continue
-        winner = m.winner
-        loser = m.away_team if winner == m.home_team else m.home_team
-        bracket[f'THIRD_{idx}'] = loser
-
-    # CHAMPION / RUNNER_UP: ganador y perdedor de la final
-    final_match = _actual_team_for_round_slot(ROUND_FINAL, 1)
-    if final_match and final_match.is_finished:
-        winner = final_match.winner
-        loser = final_match.away_team if winner == final_match.home_team else final_match.home_team
-        bracket[SLOT_CHAMPION] = winner
-        bracket[SLOT_RUNNER_UP] = loser
-
-    # 3rd / 4th place: ganador y perdedor del partido por el 3er puesto
-    third_match = _actual_team_for_round_slot(ROUND_3RD, 1)
-    if third_match and third_match.is_finished:
-        winner = third_match.winner
-        loser = third_match.away_team if winner == third_match.home_team else third_match.home_team
-        bracket[SLOT_THIRD] = winner
-        bracket[SLOT_FOURTH] = loser
-
+    bracket, _slot_match = actual_bracket_and_matches()
     return bracket
 
 
@@ -286,24 +229,21 @@ def _points_final_positions(participant: Participant,
 def _points_knockout_scores(participant: Participant) -> int:
     """
     Para cada predicción de marcador en eliminatoria, si el resultado REAL del
-    partido en ESOS slots coincide en marcador (orden top-bottom), suma puntos.
+    partido de ese cruce del bracket coincide en marcador (orden top-bottom),
+    suma puntos.
+
+    El partido real de cada cruce se obtiene emparejando por equipos según el
+    cuadro oficial (no por match_number), igual que el bracket que ve el usuario.
     """
+    _bracket, slot_match = actual_bracket_and_matches()
     total = 0
-    preds = KnockoutScorePrediction.objects.filter(participant=participant)
-    for pred in preds:
-        round_name = pred.round
-        # los partidos en una ronda están en el orden de round_matches(round_name)
-        pairs = round_matches(round_name)
-        try:
-            idx = pairs.index((pred.slot_top, pred.slot_bottom))
-        except ValueError:
-            continue
-        real_match = _actual_team_for_round_slot(round_name, idx + 1)
+    for pred in KnockoutScorePrediction.objects.filter(participant=participant):
+        real_match = slot_match.get((pred.slot_top, pred.slot_bottom))
         if real_match is None or not real_match.is_finished:
             continue
         if (pred.home_score == real_match.home_score and
                 pred.away_score == real_match.away_score):
-            total += KNOCKOUT_SCORE_POINTS.get(round_name, 0)
+            total += KNOCKOUT_SCORE_POINTS.get(pred.round, 0)
     return total
 
 

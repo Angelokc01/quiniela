@@ -37,7 +37,42 @@ from .models import (
     Match, GroupMatchPrediction, GroupStandingPrediction,
     ROUND_GROUP, ROUND_R32, ROUND_R16, ROUND_QF, ROUND_SF, ROUND_3RD, ROUND_FINAL,
     BRACKET_SLOTS,
+    SLOT_CHAMPION, SLOT_RUNNER_UP, SLOT_THIRD, SLOT_FOURTH,
 )
+
+
+# ---------------------------------------------------------------
+# La API entrega los nombres de equipos en inglés; el bracket de la app los
+# muestra (y guarda las predicciones) en español. Este mapa traduce los
+# resultados reales al mismo nombre que usan las predicciones para poder
+# compararlos. (Cubre los 32 equipos del cuadro; si llega un nombre que no
+# está en el mapa, se devuelve igual.)
+# ---------------------------------------------------------------
+TEAM_EN_TO_ES = {
+    'Germany': 'Alemania', 'Paraguay': 'Paraguay',
+    'France': 'Francia', 'Sweden': 'Suecia',
+    'South Africa': 'Sudáfrica', 'Canada': 'Canadá',
+    'Netherlands': 'Países Bajos', 'Morocco': 'Marruecos',
+    'Portugal': 'Portugal', 'Croatia': 'Croacia',
+    'Spain': 'España', 'Austria': 'Austria',
+    'USA': 'Estados Unidos', 'Bosnia-Herzegovina': 'Bosnia y Herzegovina',
+    'Belgium': 'Bélgica', 'Senegal': 'Senegal',
+    'Brazil': 'Brasil', 'Japan': 'Japón',
+    "Côte d'Ivoire": 'Costa de Marfil', 'Norway': 'Noruega',
+    'Mexico': 'México', 'Ecuador': 'Ecuador',
+    'England': 'Inglaterra', 'Congo DR': 'República Democrática del Congo',
+    'Argentina': 'Argentina', 'Cabo Verde': 'Cabo Verde',
+    'Australia': 'Australia', 'Egypt': 'Egipto',
+    'Switzerland': 'Suiza', 'Algeria': 'Argelia',
+    'Colombia': 'Colombia', 'Ghana': 'Ghana',
+}
+
+
+def team_es(name: str) -> str:
+    """Traduce el nombre de un equipo de la API (inglés) al usado en el bracket."""
+    if not name:
+        return ''
+    return TEAM_EN_TO_ES.get(name, name)
 
 
 # ---------------------------------------------------------------
@@ -265,6 +300,105 @@ def real_r32_slots() -> Dict[str, str]:
     árbol del bracket (la API ordena por fecha, no por posición de la llave).
     """
     return _official_r32_slots()
+
+
+# ---------------------------------------------------------------
+# Bracket REAL desde resultados de la API, posicionado por el cuadro oficial
+# ---------------------------------------------------------------
+def _real_matches_by_round_teams():
+    """Indexa los partidos reales de eliminatoria por (round, par de equipos ES)."""
+    idx = {}
+    teams_by_round = {}
+    for m in Match.objects.exclude(round=ROUND_GROUP):
+        a, b = team_es(m.home_team), team_es(m.away_team)
+        if a and b:
+            idx[(m.round, frozenset((a, b)))] = m
+        for t in (a, b):
+            if t:
+                teams_by_round.setdefault(m.round, set()).add(t)
+    return idx, teams_by_round
+
+
+def _decisive_winner_es(m):
+    if not m or not m.is_finished or m.home_score is None or m.away_score is None:
+        return None
+    if m.home_score > m.away_score:
+        return team_es(m.home_team)
+    if m.away_score > m.home_score:
+        return team_es(m.away_team)
+    return None  # empate: lo resuelven los penales -> ver presencia en la ronda siguiente
+
+
+def actual_bracket_and_matches():
+    """
+    Reconstruye el bracket REAL a partir de los resultados de la API, colocando
+    cada equipo en su posición del cuadro OFICIAL (no por match_number).
+
+    Devuelve:
+      - bracket: dict slot -> equipo (en español), para R32..Final + campeón, etc.
+      - slot_match: dict (slot_top, slot_bottom) -> Match real de ese cruce.
+
+    El ganador de cada cruce se determina por: (1) qué equipo del par aparece en
+    la ronda siguiente (la API ya resolvió penales al avanzar al equipo), o
+    (2) el marcador si fue decisivo.
+    """
+    idx, teams_by_round = _real_matches_by_round_teams()
+    bracket = {}
+    slot_match = {}
+
+    # Base de dieciseisavos = cuadro oficial (español)
+    for i, (home, away) in enumerate(OFFICIAL_R32, start=1):
+        bracket[f'R32_{2 * i - 1}'] = home
+        bracket[f'R32_{2 * i}'] = away
+
+    flow = [
+        (ROUND_R32, ROUND_R16, 'R16'),
+        (ROUND_R16, ROUND_QF, 'QF'),
+        (ROUND_QF, ROUND_SF, 'SF'),
+        (ROUND_SF, ROUND_FINAL, 'FINAL'),
+    ]
+    for round_name, next_round, next_prefix in flow:
+        teams_next = teams_by_round.get(next_round, set())
+        for st, sb in round_matches(round_name):
+            ta, tb = bracket.get(st), bracket.get(sb)
+            if not ta or not tb:
+                continue
+            m = idx.get((round_name, frozenset((ta, tb))))
+            if m:
+                slot_match[(st, sb)] = m
+            # ganador: presencia en la ronda siguiente, o marcador decisivo
+            winner = ta if ta in teams_next else (tb if tb in teams_next else _decisive_winner_es(m))
+            if not winner:
+                continue
+            num = int(st.split('_')[1])
+            bracket[f'{next_prefix}_{(num + 1) // 2}'] = winner
+            if round_name == ROUND_SF:
+                loser = tb if winner == ta else ta
+                bracket[f'THIRD_{(num + 1) // 2}'] = loser
+
+    # Tercer puesto y final
+    for st, sb in round_matches(ROUND_3RD):
+        ta, tb = bracket.get(st), bracket.get(sb)
+        if ta and tb:
+            m = idx.get((ROUND_3RD, frozenset((ta, tb))))
+            if m:
+                slot_match[(st, sb)] = m
+                w = _decisive_winner_es(m)
+                if w:
+                    bracket[SLOT_THIRD] = w
+                    bracket[SLOT_FOURTH] = tb if w == ta else ta
+    for st, sb in round_matches(ROUND_FINAL):
+        ta, tb = bracket.get(st), bracket.get(sb)
+        if ta and tb:
+            m = idx.get((ROUND_FINAL, frozenset((ta, tb))))
+            if m:
+                slot_match[(st, sb)] = m
+                w = _decisive_winner_es(m)
+                if w:
+                    bracket[SLOT_CHAMPION] = w
+                    bracket[SLOT_RUNNER_UP] = tb if w == ta else ta
+
+    return bracket, slot_match
 
 
 def round_pairings(round_name: str) -> List[Tuple[str, str, str]]:
