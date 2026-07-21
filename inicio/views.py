@@ -30,7 +30,7 @@ from .bracket import (
 from .scoring import (
     participant_points_breakdown, betting_group_leaderboard,
     group_stage_complete, _points_group_match, KNOCKOUT_SCORE_POINTS,
-    ROUND_CORRECT_SLOT_POINTS, FINAL_POSITION_POINTS,
+    ROUND_CORRECT_SLOT_POINTS, FINAL_POSITION_POINTS, award_name_matches,
 )
 from .pdf_reports import build_participant_predictions_pdf
 from .wc_api import sync_matches_to_db
@@ -148,10 +148,9 @@ def manage_award_winners(request):
         winner = saved.get(k, '')
         n_hits = 0
         if winner:
-            wnorm = winner.strip().lower()
             n_hits = sum(
                 1 for p in AwardPrediction.objects.filter(award=k)
-                if p.player_name.strip().lower() == wnorm)
+                if award_name_matches(p.player_name, winner))
         awards.append({
             'key': k, 'label': lbl, 'points': AWARD_POINTS[k],
             'value': winner, 'n_hits': n_hits,

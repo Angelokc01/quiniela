@@ -35,6 +35,9 @@ PREMIOS INDIVIDUALES
   - Mejor Joven:  5
   - Mejor Gol:    5  (admin lo define)
 """
+import difflib
+import re
+import unicodedata
 from collections import defaultdict
 from typing import Dict, List, Optional
 
@@ -250,13 +253,59 @@ def _points_knockout_scores(participant: Participant) -> int:
 # ============================================================
 # Premios individuales
 # ============================================================
+def _normalize_name(s: str) -> str:
+    """minúsculas, sin acentos ni puntuación, espacios colapsados."""
+    s = unicodedata.normalize('NFKD', s or '')
+    s = ''.join(c for c in s if not unicodedata.combining(c))
+    return ' '.join(re.sub(r'[^a-z0-9]+', ' ', s.lower()).split())
+
+
+def _token_match(t1: str, t2: str) -> bool:
+    if t1 == t2:
+        return True
+    if len(t1) >= 4 and len(t2) >= 4:
+        # apodos/formas cortas (Rodri~Rodrigo) o typos (Mbape~Mbappe)
+        if t1.startswith(t2) or t2.startswith(t1):
+            return True
+        if difflib.SequenceMatcher(None, t1, t2).ratio() >= 0.85:
+            return True
+    return False
+
+
+def award_name_matches(prediction: str, actual: str) -> bool:
+    """
+    Compara el nombre que puso el participante con el ganador real de forma
+    tolerante: ignora mayúsculas, acentos y puntuación, y acepta apellidos,
+    nombres incompletos, apodos (Rodri↔Rodrigo) y pequeños errores de tipeo
+    (Mbape↔Mbappe). Se ancla en el APELLIDO del ganador para no confundir por
+    nombres de pila iguales (p. ej. Julián Álvarez vs Julian Brandt).
+    """
+    p = _normalize_name(prediction)
+    a = _normalize_name(actual)
+    if not p or not a:
+        return False
+    if p == a:
+        return True
+    # nombre corto contenido en el otro (ej. "Unai" ↔ "Unai Simon")
+    if a in p or p in a:
+        return True
+    ptoks = p.split()
+    surname = a.split()[-1]  # apellido del ganador real
+    for pt in ptoks:
+        if _token_match(pt, surname):
+            return True
+    # similitud global como último recurso (nombres de una palabra con typo)
+    if difflib.SequenceMatcher(None, p, a).ratio() >= 0.86:
+        return True
+    return False
+
+
 def _points_awards(participant: Participant) -> int:
-    actuals = {a.award: (a.player_name or '').strip().lower()
-               for a in AwardActual.objects.all()}
+    actuals = {a.award: a.player_name for a in AwardActual.objects.all()}
     total = 0
     for pred in AwardPrediction.objects.filter(participant=participant):
         actual = actuals.get(pred.award, '')
-        if actual and pred.player_name.strip().lower() == actual:
+        if actual and award_name_matches(pred.player_name, actual):
             total += AWARD_POINTS.get(pred.award, 0)
     return total
 
