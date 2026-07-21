@@ -15,6 +15,9 @@ urlpatterns = [
      # Sistema de puntos
      path('sistema-de-puntos/', views.sistema_puntos, name='sistema_puntos'),
 
+     # Admin: ganadores reales de los premios
+     path('admin-premios/', views.manage_award_winners, name='manage_award_winners'),
+
      # Próximos partidos y predicciones por partido
      path('partidos/', views.upcoming_matches, name='upcoming_matches'),
      path('partidos/<int:match_id>/', views.match_predictions, name='match_predictions'),

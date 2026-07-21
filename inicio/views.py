@@ -120,6 +120,46 @@ def sistema_puntos(request):
 
 
 # ============================================================
+# Admin: ganadores reales de los premios (reparte esos puntos)
+# ============================================================
+@require_http_methods(['GET', 'POST'])
+def manage_award_winners(request):
+    denied = _ensure_admin_or_redirect(request)
+    if denied is not None:
+        return denied
+
+    if request.method == 'POST':
+        for award_key, _label in AWARD_CHOICES:
+            value = (request.POST.get(award_key) or '').strip()
+            if value:
+                AwardActual.objects.update_or_create(
+                    award=award_key, defaults={'player_name': value})
+            else:
+                AwardActual.objects.filter(award=award_key).delete()
+        messages.success(
+            request,
+            'Ganadores guardados. Los puntos de premios se actualizaron automáticamente '
+            'para quienes acertaron.')
+        return redirect('inicio:manage_award_winners')
+
+    saved = {a.award: a.player_name for a in AwardActual.objects.all()}
+    awards = []
+    for k, lbl in AWARD_CHOICES:
+        winner = saved.get(k, '')
+        n_hits = 0
+        if winner:
+            wnorm = winner.strip().lower()
+            n_hits = sum(
+                1 for p in AwardPrediction.objects.filter(award=k)
+                if p.player_name.strip().lower() == wnorm)
+        awards.append({
+            'key': k, 'label': lbl, 'points': AWARD_POINTS[k],
+            'value': winner, 'n_hits': n_hits,
+        })
+    return render(request, 'inicio/manage_award_winners.html', {'awards': awards})
+
+
+# ============================================================
 # Crear grupo
 # ============================================================
 @require_http_methods(['GET', 'POST'])

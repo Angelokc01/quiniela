@@ -1,0 +1,9 @@
+# Respaldos de datos (contienen datos personales; NO subir al repo público)
+backup_quiniela.json
+backup_*.json
+*.bak
+test_restore.sqlite3
+
+# Entorno / temporales
+.env
+__pycache__/

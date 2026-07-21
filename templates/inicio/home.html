@@ -41,6 +41,14 @@
     <p class="muted">No hay grupos aún. ¡Crea uno!</p>
     {% endif %}
   </div>
+
+  {% if is_app_admin %}
+  <div class="card card-accent2">
+    <h2>Administración</h2>
+    <p class="muted">Registra los ganadores reales de los premios individuales para repartir esos puntos automáticamente.</p>
+    <a class="btn primary" href="{% url 'inicio:manage_award_winners' %}">🏆 Ganadores de premios</a>
+  </div>
+  {% endif %}
 </section>
 
 <section class="callout">

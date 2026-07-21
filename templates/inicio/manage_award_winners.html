@@ -1,0 +1,54 @@
+{% extends "inicio/base.html" %}
+
+{% block title %}Ganadores de premios – Admin{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1>Ganadores de premios</h1>
+  <p class="muted">
+    Escribe el <strong>nombre del jugador que ganó</strong> cada premio. Al guardar,
+    cada participante que haya puesto ese mismo nombre recibe sus puntos
+    automáticamente (no importan mayúsculas ni espacios). Deja un campo vacío si
+    todavía no se conoce ese premio.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="responsive-table">
+      <table class="matches">
+        <thead>
+          <tr><th>Premio</th><th>Ganador real</th><th>Aciertos</th></tr>
+        </thead>
+        <tbody>
+          {% for a in awards %}
+            <tr>
+              <td>{{ a.label }}</td>
+              <td>
+                <input type="text" name="{{ a.key }}" value="{{ a.value }}"
+                       maxlength="120" placeholder="Nombre del jugador ganador">
+              </td>
+              <td>
+                {% if a.value %}
+                  <span class="pts-badge {% if a.n_hits %}green{% else %}gold{% endif %}">
+                    {{ a.n_hits }} acert{{ a.n_hits|pluralize:"o,os" }} · +{{ a.points }} c/u
+                  </span>
+                {% else %}
+                  <span class="muted small">sin definir</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="actions">
+      <button class="btn primary" type="submit">Guardar ganadores</button>
+      <a class="btn ghost" href="{% url 'inicio:home' %}">Volver</a>
+    </div>
+  </form>
+
+  <p class="muted small">
+    Los puntos aparecen en la columna <strong>Premios</strong> de la tabla del grupo.
+  </p>
+</section>
+{% endblock %}
